@@ -38,6 +38,8 @@
 #	add -c option to execute given commands and exit
 #	add attachments to account (saved into JSON or separately)
 #	add command history
+#	add options to copy username to clipboard to view-command
+
 
 from datetime import datetime
 from os.path import expanduser
