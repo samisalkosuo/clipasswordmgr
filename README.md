@@ -4,7 +4,7 @@ clipasswordmgr
 Command Line Password Manager is a tool to manage passwords in the shell.
 
 Commands:
-
+<pre>
    add                                                                               Add new account.                                          
    changepassphrase                                                                  Change passphrase.                                        
    debug            on|off                                                           Print or don't print debug info.                          
@@ -21,6 +21,6 @@ Commands:
    search           <string in name or comment> | username=<string> | email=<string> Search accounts that have matching string.                
    select           <rest of select SQL>                                             Execute SELECT SQL.                                       
    view             <start of name>                                                  View account(s) details.
-
+</pre>
 
 Some words about the origins of CLI Password Manager: http://sami.salkosuo.net/cli-password-manager/
