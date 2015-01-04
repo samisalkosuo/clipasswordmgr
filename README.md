@@ -3,6 +3,8 @@ clipasswordmgr
 
 Command Line Password Manager is a tool to manage passwords in the command line. All accounts/passwords are stored in an encrypted file, protected by user given passphrase.
 
+Encryption/decryption is done using Python cryptography library: https://cryptography.io/en/latest/
+
 Commands:
 <table width="100%">
 <tr>
