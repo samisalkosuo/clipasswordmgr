@@ -8,19 +8,21 @@ Commands:
    add                                                                               Add new account.                                          
    changepassphrase                                                                  Change passphrase.                                        
    debug            on|off                                                           Print or don't print debug info.                          
-   delete           <start of name>                                                  Delete account(s) that match given string.                
+   delete           &lt;start of name>                                                  Delete account(s) that match given string.                
    exit                                                                              Exit program.                                             
-   exportjson       <filename>                                                       Export accounts as JSON to a file.                        
+   exportjson       &lt;filename>                                                       Export accounts as JSON to a file.                        
    help                                                                              This help.                                                
-   list             [<start of name> | json]                                         Print all or given accounts. If json is given, print JSON.
-   loadjson         <filename>                                                       Load accounts from file. Overrides any existing accounts. 
+   list             [&lt;start of name> | json]                                         Print all or given accounts. If json is given, print JSON.
+   loadjson         &lt;filename>                                                       Load accounts from file. Overrides any existing accounts. 
    meta                                                                              View meta data.                                           
-   metaset          <key> <value>                                                    Set key:value to JSON meta data.                          
-   modify           <start of name>                                                  Modify account(s).                                        
-   pwd              [<number of pwds>] [<pwd length>]                                Generate password(s).                                     
-   search           <string in name or comment> | username=<string> | email=<string> Search accounts that have matching string.                
-   select           <rest of select SQL>                                             Execute SELECT SQL.                                       
-   view             <start of name>                                                  View account(s) details.
+   metaset          &lt;key> &lt;value>                                                    Set key:value to JSON meta data.                          
+   modify           &lt;start of name>                                                  Modify account(s).                                        
+   pwd              [&lt;number of pwds>] [&lt;pwd length>]                                Generate password(s).                                     
+   search           &lt;string in name or comment> | 
+                    username=&lt;string> | 
+                    email=&lt;string> Search accounts that have matching string.                
+   select           &lt;rest of select SQL>                                             Execute SELECT SQL.                                       
+   view             &lt;start of name>                                                  View account(s) details.
 </pre>
 
 Some words about the origins of CLI Password Manager: http://sami.salkosuo.net/cli-password-manager/
