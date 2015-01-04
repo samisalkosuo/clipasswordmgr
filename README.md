@@ -4,6 +4,7 @@ clipasswordmgr
 Command Line Password Manager is a tool to manage passwords in the shell.
 
 Commands:
+
    add                                                                               Add new account.                                          
    changepassphrase                                                                  Change passphrase.                                        
    debug            on|off                                                           Print or don't print debug info.                          
