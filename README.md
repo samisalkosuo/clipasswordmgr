@@ -1,7 +1,7 @@
 clipasswordmgr
 ==============
 
-Command Line Password Manager is a tool to manage passwords in the shell.
+Command Line Password Manager is a tool to manage passwords in the command line. All accounts/passwords are stored in an encrypted file, protected by user given passphrase.
 
 Commands:
 <table width="100%">
