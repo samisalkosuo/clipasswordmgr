@@ -5,7 +5,12 @@ Command Line Password Manager is a tool to manage passwords in the command line.
 
 Encryption/decryption is done using Python cryptography library: https://cryptography.io/en/latest/
 
-Commands:
+Usage:
+
+Execute clipasswordmgr.py and a shell opens. Start by adding new account using 'add' command.
+
+Type 'help' to get list of available commands:
+
 <table width="100%">
 <tr>
 <td width="20%">add</td>
