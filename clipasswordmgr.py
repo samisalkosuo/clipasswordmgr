@@ -38,7 +38,10 @@
 #	add -c option to execute given commands and exit
 #	add attachments to account (saved into JSON or separately)
 #	add command history
-#	add options to copy username to clipboard to view-command
+#	strip extra spaces in name, and other fields
+#	add options to copy username, email and others to view-command
+#	add url field to account
+#	add view-by-id command/option
 
 
 from datetime import datetime
