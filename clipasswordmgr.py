@@ -42,7 +42,7 @@
 #	add options to copy username, email and others to view-command
 #	add url field to account
 #	add view-by-id command/option
-
+#	add --readme option to generate README.md file
 
 from datetime import datetime
 from os.path import expanduser
