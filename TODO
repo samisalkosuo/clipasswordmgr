@@ -1,0 +1,14 @@
+TODO
+
+-copy passwords file to remote host or email it etc for backup
+-timeout to store key in variable
+-add length and align formatters to each column in getColumnFormatString()
+-add passphrase hint
+-add -c option to execute given commands and exit
+-add attachments to account (saved into JSON or separately)
+-add command history
+-strip extra spaces in name, and other fields
+-add options to copy username, email and others to view-command
+-add url field to account
+-add view-by-id command/option
+-add --readme option to generate README.md file
