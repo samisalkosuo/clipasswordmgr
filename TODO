@@ -12,3 +12,4 @@ TODO
 -add url field to account
 -add view-by-id command/option
 -add --readme option to generate README.md file
+-add copy account command 
