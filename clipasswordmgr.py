@@ -64,7 +64,7 @@ pwgenDefaultLength=10
 pwgenOpts="-cn1s"
 
 PROGRAMNAME="CLI Password Manager"
-VERSION="0.1"
+VERSION="0.2"
 COPYRIGHT="Copyright (C) 2015 by Sami Salkosuo."
 LICENSE="Licensed under the Apache License v2.0."
 
@@ -106,8 +106,9 @@ args=None
 def parseCommandLineArgs():
 	#parse command line args
 	parser = argparse.ArgumentParser(description='Command Line Password Manager.')
-	parser.add_argument('-f', nargs=1, metavar='pwdfile', help='Password file.')
-	parser.add_argument('--new', action='store_true', help='Create new password file if -f file does not exist.')
+	parser.add_argument('-c','--cmd', nargs='*', help='Execute command(s) and exit.')
+	parser.add_argument('-f','--file', nargs=1, help='Password file.')
+	parser.add_argument('-n','--new', action='store_true', help='Create new password file if -f file does not exist.')
 	parser.add_argument('--debug', action='store_true', help='Show debug info.')
 	parser.add_argument('--version', action='version', version="%s v%s" % (PROGRAMNAME, VERSION))
 	global args
@@ -124,6 +125,20 @@ def main():
 	debug("command line args: %s" % args)
 
 	config()
+
+	if args.cmd is not None:
+		#execute given commands
+		cmds=args.cmd
+		debug("commands: %s" % cmds)
+		for cmd in cmds:		
+			openDatabase()
+			try:
+				debug("Calling %s..." % cmd)
+				callCmd(cmd)
+			except:
+				error()
+			closeDatabase()
+		return
 
 	#shell
 	userInput=prompt(PROMPTSTRING)
@@ -696,7 +711,7 @@ def accountLine(account,maxColumnLength,formatString):
 	
 def config():
 	global passwordFile
-	if args.f==None:
+	if args.file==None:
 		##read congig file and create it if not exists
 		configFile="%s/%s" % (homeDir,CONFIG_FILE)
 		if os.path.isfile(configFile) == False:
@@ -729,7 +744,7 @@ def config():
 		passwordFileName=configParser.get('config', 'password.file.name')
 		passwordFile="%s/%s" % (passwordDir,passwordFileName)
 	else:
-		passwordFile=args.f[0]
+		passwordFile=args.file[0]
 		if os.path.isfile(passwordFile) == False and args.new==None:
 			raise RuntimeError("Password file %s does not exist." % passwordFile)
 

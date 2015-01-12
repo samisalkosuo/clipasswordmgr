@@ -4,7 +4,6 @@ TODO
 -timeout to store key in variable
 -add length and align formatters to each column in getColumnFormatString()
 -add passphrase hint
--add -c option to execute given commands and exit
 -add attachments to account (saved into JSON or separately)
 -add command history
 -strip extra spaces in name, and other fields
