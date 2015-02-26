@@ -12,3 +12,6 @@ TODO
 -add view-by-id command/option
 -add --readme option to generate README.md file
 -add copy account command 
+-add option to store old password when changing pwd
+-add more options to password generation, like 'pc' to generate 
+ passwords with only characters
