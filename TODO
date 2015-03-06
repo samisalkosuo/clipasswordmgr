@@ -15,3 +15,4 @@ TODO
 -add option to store old password when changing pwd
 -add more options to password generation, like 'pc' to generate 
  passwords with only characters
+-add option to limit columns in list, like limit email to 10 chars etc.
