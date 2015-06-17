@@ -16,3 +16,6 @@ TODO
 -add more options to password generation, like 'pc' to generate 
  passwords with only characters
 -add option to limit columns in list, like limit email to 10 chars etc.
+-refactor code to make changes easier (such as adding new fields to account)
+-add version number to password file and compare password file version and code version
+-add error messages if prereqs fail (cryptography, pyperclip)
