@@ -1,3 +1,11 @@
+Version 0.3 (24.06.2015)
+
+- Added version number and .txt extension to password file. 
+- Naming: clipasswordmgr.py is the development version. 
+  clipasswordmgr-VERSION.py is the release version.
+- NOTE: copy/rename existing password file "clipwds" to new name
+  "clipwds-0.3.txt"
+
 Version 0.2 (12.01.2015)
 
 - Added -c option.

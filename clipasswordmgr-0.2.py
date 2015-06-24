@@ -64,7 +64,7 @@ pwgenDefaultLength=10
 pwgenOpts="-cn1s"
 
 PROGRAMNAME="CLI Password Manager"
-VERSION="0.3"
+VERSION="0.2"
 COPYRIGHT="Copyright (C) 2015 by Sami Salkosuo."
 LICENSE="Licensed under the Apache License v2.0."
 
@@ -742,9 +742,6 @@ def config():
 	 	configParser.read(r'%s' % configFile)
 		passwordDir=configParser.get('config', 'password.file.dir')
 		passwordFileName=configParser.get('config', 'password.file.name')
-
-		#add version to default file name
-		passwordFileName="%s-%s.txt" % (passwordFileName,VERSION)
 		passwordFile="%s/%s" % (passwordDir,passwordFileName)
 	else:
 		passwordFile=args.file[0]
