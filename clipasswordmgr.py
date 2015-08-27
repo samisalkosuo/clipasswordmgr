@@ -1,27 +1,34 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 #CLI Password Manager
 #
-#Copyright 2015 Sami Salkosuo
-#http://sami.salkosuo.net
+#The MIT License (MIT)
 #
-#Licensed under the Apache License, Version 2.0 (the "License");
-#you may not use this file except in compliance with the License.
-#You may obtain a copy of the License at
+#Copyright (c) 2015 Sami Salkosuo
 #
-#  http://www.apache.org/licenses/LICENSE-2.0
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
 #
-#Unless required by applicable law or agreed to in writing, software
-#distributed under the License is distributed on an "AS IS" BASIS,
-#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#See the License for the specific language governing permissions and
-#limitations under the License.
+#The above copyright notice and this permission notice shall be included in
+#all copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+#THE SOFTWARE.
 #
 #Requires:
 #   cryptography https://cryptography.io/en/latest/
 #   pyperclip https://github.com/asweigart/pyperclip
 #
-#Developed with Python 2.7.x on Windows 7 & Cygwin-x64 and OS X Yosemite
+#Developed with Python 3.4.3 on Windows 7 & Cygwin-x64 and OS X Yosemite
 #
 #Some design choices:
 #   only one source file
@@ -29,6 +36,8 @@
 #   read and decrypt file for each command when needed
 #   use sqlite in-memory to work with accounts
 #
+#Some words about the origins of CLI Password Manager: 
+#http://sami.salkosuo.net/cli-password-manager/
 
 from datetime import datetime
 from os.path import expanduser
@@ -45,14 +54,10 @@ import shlex
 import argparse
 import subprocess
 import random
+import configparser 
 
-#set default encoding to UTF-8
-#might want to use 'export PYTHONIOENCODING=UTF8' in shell
-reload(sys)
-sys.setdefaultencoding('UTF-8')
 
 #global variables
-pythonV2 = sys.version_info[0] == 2
 passwordFile=None
 passwordFileBackups=10
 homeDir = expanduser("~")
@@ -177,10 +182,23 @@ def callCmd(userInput):
 #if no args use: "||description"
 #see examples below
 
+def migrateCommand(inputList):
+    """
+    ||Migrate passwords from version 0.3 to version 0.4.
+    """
+    debug("entering addCommand")
+    print("TODO: migrate")
+
+
 def addCommand(inputList):
     """
     ||Add new account.
     """
+    uid=prompt ("User name: ")
+    print(uid)
+    print("TODO does not work with python3")
+    if 1==1:
+        return
     debug("entering addCommand")
     pwdJSON=loadAccounts()
     #interactove to ask 
@@ -532,7 +550,10 @@ def helpCommand(inputList):
     versionInfo()
     print()
     print("Commands:")
-    names=globals().keys()
+    names=[]
+    for _n in globals().keys():
+        names.append(_n)
+    print(names)
     names.sort()
     maxLenName=0
     maxLenArgs=0
@@ -667,7 +688,7 @@ def pwgenPassword(length=None,n=None):
             l=len(pwd)
             pwd=pwd[random.randint(0, l-1)]
         
-    return pwd
+    return pwd.decode("utf-8")
 
 def versionInfo():
     print("%s v%s" % (PROGRAMNAME, VERSION))
@@ -737,8 +758,7 @@ def config():
                     print(line)
                 file.close()
         #read config
-        import ConfigParser
-        configParser = ConfigParser.RawConfigParser()   
+        configParser = configparser.RawConfigParser()   
         configParser.read(r'%s' % configFile)
         passwordDir=configParser.get('config', 'password.file.dir')
         passwordFileName=configParser.get('config', 'password.file.name')
@@ -794,8 +814,8 @@ def loadMetaConfig(jsonObj=None):
     if jsonObj==None:
         fernet = Fernet(key)
         encryptedJSON=readFileAsString(passwordFile)
-        jsonString=fernet.decrypt(encryptedJSON)
-        jsonObj=json.loads(jsonString)
+        jsonString=fernet.decrypt(encryptedJSON.encode("utf-8"))
+        jsonObj=json.loads(jsonString.decode("utf-8"))
     
     meta=jsonObj[JSON_META]
     usePwgenPasswords=boolValue(meta[JSONMETAKEY_PWGENENABLED])
@@ -812,8 +832,8 @@ def loadAccounts():
 def loadJSONFile():
     fernet = Fernet(key)
     encryptedJSON=readFileAsString(passwordFile)
-    jsonString=fernet.decrypt(encryptedJSON)
-    jsonObj=json.loads(jsonString)
+    jsonString=fernet.decrypt(encryptedJSON.encode("utf-8"))
+    jsonObj=json.loads(jsonString.decode("utf-8"))
     return jsonObj
 
 def populateAccountsTable(accounts):
@@ -865,10 +885,10 @@ def saveAccounts(contentJSON):
     contentJSON[JSON_ACCOUNTS]=accounts
     meta[JSONMETAKEY_TOTALACCOUNTS]=len(accounts)
     jsonString=json.dumps(contentJSON)
-
     debug("JSON: %s" % jsonString)
     fernet = Fernet(key)
-    encryptedJSON = fernet.encrypt(jsonString)
+    #added encode below, to covert string to bytes
+    encryptedJSON = fernet.encrypt(jsonString.encode("utf-8"))
     createFileBackups(passwordFile,passwordsFilesToKeep)
     createNewFile(passwordFile,[encryptedJSON])
 
@@ -911,11 +931,8 @@ def toHexString(byteStr):
     return ''.join(["%02X" % ord(x) for x in byteStr]).strip()
 
 def prompt(str):
-    if pythonV2:
-        inputStr = raw_input(str)
-    else:
-        inputStr = input(str)
-    inputStr=unicode(inputStr,"UTF-8")
+    inputStr = input(str)
+    #inputStr=unicode(inputStr,"UTF-8")
     return inputStr
 
 def askKey(str):
@@ -923,7 +940,7 @@ def askKey(str):
     passphrase=getpass.getpass(str)
     if passphrase=="":
         return None
-    passphrase=hashlib.sha256(passphrase).digest()
+    passphrase=hashlib.sha256(passphrase.encode('utf-8')).digest()
     key=base64.urlsafe_b64encode(passphrase)
     return key
 

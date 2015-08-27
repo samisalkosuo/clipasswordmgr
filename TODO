@@ -1,21 +1,39 @@
 TODO
 
--copy passwords file to remote host or email it etc for backup
--timeout to store key in variable
--add length and align formatters to each column in getColumnFormatString()
--add passphrase hint
--add attachments to account (saved into JSON or separately)
--add command history
--strip extra spaces in name, and other fields
--add options to copy username, email and others to view-command
--add url field to account
--add view-by-id command/option
--add --readme option to generate README.md file
--add copy account command 
--add option to store old password when changing pwd
--add more options to password generation, like 'pc' to generate 
- passwords with only characters
--add option to limit columns in list, like limit email to 10 chars etc.
--refactor code to make changes easier (such as adding new fields to account)
--add version number to password file and compare password file version and code version
--add error messages if prereqs fail (cryptography, pyperclip)
+these may or may not be implemented
+
+- move to python3
+	- because of UTF and future updates
+- copy passwords file to remote host or email it etc for backup
+- timeout to store key in variable
+- add length and align formatters to each column in getColumnFormatString()
+- add passphrase hint
+- add attachments to account (saved into JSON or separately)
+- add command history
+- strip extra spaces in name, and other fields
+- add options to copy username, email and others to view-command
+- add url field to account
+- add view-by-id command/option
+- add --readme option to generate README.md file
+- add copy account command 
+- add option to store old password when changing pwd
+- add more options to password generation, like 'pc' to generate passwords with only characters
+- add option to limit columns in list, like limit email to 10 chars etc.
+- refactor code to make changes easier (such as adding new fields to account)
+- add version number to password file and compare password file version and code version
+- add error messages if prereqs fail (cryptography, pyperclip)
+- add version to python file in order to distiguish versions 
+	- use -DEV for development?
+- remove JSON file format and use CSV (easier import, export)?
+	- CSV header line has all the fields, used when creating inmemory SQL table
+	- add CSV header line as constant in the code, to be used when creating new accounts etc
+	- need to migrate old accounts that don't have new fields
+- file format is text one encrypted line per account
+	- =>easy to modify?
+- remove configuration files?
+	- use env variables
+- add migrate command
+	- to add new fields in passwords?
+
+
+
