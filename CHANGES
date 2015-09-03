@@ -3,6 +3,7 @@ Version 0.4 (24.08.2015)
 - Moved to Python3.
 - Changed license to the MIT License.
 - Changed name to clipwdmgr.py.
+- Major refactoring.
 
 Version 0.3 (24.06.2015)
 
