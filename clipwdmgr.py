@@ -73,8 +73,9 @@ FIELD_DELIM="|||::|||"
 DATABASE=None
 #sqlite database cursor
 DATABASE_CURSOR=None
-#columns for ACCOUNTS table
+#columns for ACCOUNTS table and also fields in account string
 COLUMN_NAME="NAME"
+#CREATED column uniquely identifies account, higly unlikely that two accounts are created at the same time :-)
 COLUMN_CREATED="CREATED"
 COLUMN_UPDATED="UPDATED"
 COLUMN_USERNAME="USERNAME"
@@ -83,37 +84,30 @@ COLUMN_EMAIL="EMAIL"
 COLUMN_PASSWORD="PASSWORD"
 COLUMN_COMMENT="COMMENT"
 DATABASE_ACCOUNTS_TABLE_COLUMNS=[COLUMN_NAME,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_USERNAME,COLUMN_URL,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT]
-DATABASE_ACCOUNTS_TABLE_COLUMN_IS_TIMESTAMP=[COLUMN_CREATED,COLUMN_UPDATED]#" DEFAULT '' "," DEFAULT CURRENT_TIMESTAMP "," DEFAULT CURRENT_TIMESTAMP "," DEFAULT '' "," DEFAULT '' "," DEFAULT '' "," DEFAULT '' "," DEFAULT '' "]
+DATABASE_ACCOUNTS_TABLE_COLUMN_IS_TIMESTAMP=[COLUMN_CREATED,COLUMN_UPDATED]
+
 #environment variable that holds password file path and name
 CLIPWDMGR_FILE="CLIPWDMGR_FILE"
 
 CLI_PASSWORD_FILE=os.environ.get(CLIPWDMGR_FILE)
-if CLI_PASSWORD_FILE==None:
-    print("%s environment variable missing." % CLIPWDMGR_FILE)
-    print("Use %s environment variable to set path and name of the password file." % CLIPWDMGR_FILE)
-    sys.exit(1) 
 
 #configuration
 CFG_MASKPASSWORD="MASKPASSWORD"
 CFG_COLUMN_LENGTH="COLUMN_LENGTH"
 CFG_COPY_PASSWORD_ON_VIEW="COPY_PASSWORD_ON_VIEW"
-#configuration stored as text file in home dir
+CFG_PWGEN_DEFAULT_OPTS_ARGS="CFG_PWGEN_DEFAULT_OPTS_ARGS"
+CFG_MAX_PASSWORD_FILE_BACKUPS="CFG_MAX_PASSWORD_FILE_BACKUPS"
 #defaults
 CONFIG={
     CFG_MASKPASSWORD:True,
     CFG_COPY_PASSWORD_ON_VIEW:True,
-    CFG_COLUMN_LENGTH:10
+    CFG_COLUMN_LENGTH:10,
+    CFG_PWGEN_DEFAULT_OPTS_ARGS:"-cn1 12 1",
+    CFG_MAX_PASSWORD_FILE_BACKUPS:10
     }
 
+#configuration stored as json file in home dir
 CONFIG_FILE="%s/.clipwdmgr.cfg" % (expanduser("~"))
-
-#TODO:
-#make backups of password file with version info
-#CLI_PASSWORD_FILE="%s-%s.txt" % (CLI_PASSWORD_FILE,VERSION)
-
-#TODO: check whether file exists and whether previous version file exists
-#        if os.path.isfile(configFile) == False:
-
 
 #command line args
 args=None
@@ -122,9 +116,8 @@ def parseCommandLineArgs():
     #parse command line args
     parser = argparse.ArgumentParser(description='Command Line Password Manager.')
     parser.add_argument('-c','--cmd', nargs='*', help='Execute command(s) and exit.')
-    parser.add_argument('-f','--file', nargs=1, help='Password file.')
-    parser.add_argument('-d','--decrypt', nargs=1, help='Decrypt single account.')
-    parser.add_argument('-n','--new', action='store_true', help='Create new password file if -f file does not exist.')
+    parser.add_argument('-f','--file', nargs=1,metavar='FILE', help='Password file.')
+    parser.add_argument('-d','--decrypt', nargs=1, metavar='STR',help='Decrypt single account string.')
     parser.add_argument('--migrate', action='store_true', help='Migrate passwords from version 0.3.')
     parser.add_argument('--debug', action='store_true', help='Show debug info.')
     parser.add_argument('--version', action='version', version="%s v%s" % (PROGRAMNAME, VERSION))
@@ -140,6 +133,15 @@ def main():
     print()
     if DEBUG:
         print("DEBUG is True")
+
+    if args.file:
+        global CLI_PASSWORD_FILE
+        CLI_PASSWORD_FILE=args.file[0]
+
+    if CLI_PASSWORD_FILE==None:
+        print("%s environment variable missing." % CLIPWDMGR_FILE)
+        print("Use %s environment variable to set path and name of the password file." % CLIPWDMGR_FILE)
+        sys.exit(1) 
     
     debug("command line args: %s" % args)
 
@@ -155,7 +157,6 @@ def main():
     if args.decrypt:
         account=args.decrypt[0]
         print(decryptString(KEY,account))
-
         return
 
     if args.cmd:
@@ -213,29 +214,228 @@ def aliasCommand(inputList):
     """
     print("Not yet implemented")
     
+def infoCommand(inputList):
+    """
+    ||Information about accounts.
+    """
+    #print total accounts
+    #password file name, location, size
+    #last updated
+    #back files location,name,accounts,last updated?
+    #config? here too
+    print("Not yet implemented")
+
+def addCommand(inputList):
+    """
+    [<name>]||Add new account.
+    """
+    debug("entering addCommand")
+    loadAccounts()
+    name=None
+    if len(inputList)==2:
+        name=inputList[1]
+    if name is not None:
+        print("Name     : %s" % name)
+    else:
+        name=prompt ("Name     : ")
+        while name == "":
+            print("Empty name not accepted")
+            name=prompt ("Name     : ")
+    URL=prompt ("URL      : ")
+    username=prompt ("User name: ")
+    email=prompt("Email    : ")
+    pwd=getPassword()
+    comment=prompt ("Comment  : ")
+    timestamp=formatTimestamp(currentTimestamp())
+
+    newAccount=dict()
+    newAccount[COLUMN_NAME]=name
+    newAccount[COLUMN_URL]=URL
+    newAccount[COLUMN_USERNAME]=username
+    newAccount[COLUMN_EMAIL]=email
+    newAccount[COLUMN_PASSWORD]=pwd
+    newAccount[COLUMN_COMMENT]=comment
+    newAccount[COLUMN_CREATED]=timestamp
+    newAccount[COLUMN_UPDATED]=timestamp
+    accountString=makeAccountString(newAccount)
+    debug(accountString)
+
+    createPasswordFileBackups()
+    insertAccountToFile(accountString)
+
 
 def listCommand(inputList):
     """
     [<start of name>]||Print all accounts or all that match given start of name.
     """
     loadAccounts()
-    where=""
+    arg=""
     if(len(inputList)==2):
-        where="where name like \"%s%%\"" % inputList[1]
+        arg=inputList[1]
 
-    sql="select %s,%s,%s,%s,%s,%s from accounts %s order by %s" % (COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT,where,COLUMN_NAME)
-    debug("SQL: %s" % sql)
-    
     formatString=getColumnFormatString(6,CONFIG[CFG_COLUMN_LENGTH])
     headerLine=formatString.format(COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT)
     print(headerLine)
-    for row in DATABASE_CURSOR.execute(sql):
+    rows=executeSelect([COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
+    for row in rows:
         pwd=row[COLUMN_PASSWORD]
         if CONFIG[CFG_MASKPASSWORD]==True:
             pwd="********"          
         pwd=shortenString(pwd)
         accountLine=formatString.format(shortenString(row[COLUMN_NAME]),shortenString(row[COLUMN_URL]),shortenString(row[COLUMN_USERNAME]),shortenString(row[COLUMN_EMAIL]),pwd,shortenString(row[COLUMN_COMMENT]))
         print(accountLine)
+
+def deleteCommand(inputList):
+    """
+    <start of name>||Delete account(s) that match given string.
+    """
+    debug("entering deleteCommand")
+    if verifyArgs(inputList,2)==False:
+        return
+    loadAccounts()
+    arg=inputList[1]
+
+    rows=list(executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg))
+    for row in rows:
+        printAccountRow(row)
+        accountDeleted=False
+        if boolValue(prompt("Delete this account (yes/no)? ")):
+            sql="delete from accounts where %s=?" % (COLUMN_CREATED)
+            DATABASE_CURSOR.execute(sql,(row[COLUMN_CREATED],))
+            DATABASE.commit()
+            accountDeleted=True
+
+        if accountDeleted==True:
+            saveAccounts()
+            print("Account deleted.")
+
+
+def modifyCommand(inputList):
+    """
+    <start of name>||Modify account(s) that match given string.
+    """
+    debug("entering modifyCommand")
+    if verifyArgs(inputList,2)==False:
+        return
+    loadAccounts()
+    arg=inputList[1]
+
+    #put results in list so that update cursor doesn't interfere with select cursor when updating account
+    #there note about this here: http://apidoc.apsw.googlecode.com/hg/cursor.html
+    rows=list(executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg))
+    for row in rows:
+        printAccountRow(row)
+        accountUpdated=False
+        if boolValue(prompt("Modify this account (yes/no)? ")):
+            values=[]
+            name=modPrompt("Name",row[COLUMN_NAME])
+            values.append(name)
+
+            URL=modPrompt("URL",row[COLUMN_URL])
+            values.append(URL)
+
+            username=modPrompt("User name",row[COLUMN_USERNAME])
+            values.append(username)
+
+            email=modPrompt("Email",row[COLUMN_EMAIL])
+            values.append(email)
+
+            if pwgenAvailable()==True:
+                print("pwgen is available. Type your password or type 'p' to generate password or 'c' to use original password.")
+            originalPassword=row[COLUMN_PASSWORD]
+            pwd=modPrompt("Password OLD: (%s) NEW:" % (originalPassword),originalPassword)
+            while pwd=="p":
+                pwd=pwgenPassword()
+                pwd=modPrompt("Password OLD: (%s) NEW:" % (originalPassword),pwd)
+            if pwd=="c":
+                pwd=originalPassword
+            values.append(pwd)
+
+            comment=modPrompt("Comment",row[COLUMN_COMMENT])
+            values.append(comment)
+
+            updated=formatTimestamp(currentTimestamp())
+            values.append(updated)
+
+            created=row[COLUMN_CREATED]
+            values.append(created)
+
+            sql="update accounts set %s=?,%s=?,%s=?,%s=?,%s=?,%s=?,%s=? where %s=?" % (
+                COLUMN_NAME,
+                COLUMN_URL,
+                COLUMN_USERNAME,
+                COLUMN_EMAIL,
+                COLUMN_PASSWORD,
+                COLUMN_COMMENT,
+                COLUMN_UPDATED,
+                COLUMN_CREATED
+                )
+            DATABASE_CURSOR.execute(sql,tuple(values))
+            DATABASE.commit()
+            accountUpdated=True
+
+        if accountUpdated==True:
+            saveAccounts()
+            print("Account updated.")
+
+def changepassphraseCommand(inputList):
+    """
+    ||Change passphrase.
+    """
+    debug("entering changepassphraseCommand")
+    print("Not yet implemented.")
+
+def searchCommand(inputList):
+    """
+    <string in name or comment> | username=<string> | email=<string>||Search accounts that have matching string.
+    """
+    debug("entering searchCommand")
+    if verifyArgs(inputList,2)==False:
+        return
+    print("Not yet implemented.")
+
+def copyCommand(inputList):
+    """
+    <start of name> | [pwd | uid | email | url | comment]||Copy value of given field of account to clipboard. Default is pwd.
+    """
+    if verifyArgs(inputList,None,[2,3])==False:
+        return
+
+    #print("Not yet implemented.")
+    fieldToCopy=COLUMN_PASSWORD
+    fieldName="Password"
+    if len(inputList)==3:
+        tocp=inputList[2]    
+        if tocp=="pwd":
+            fieldToCopy=COLUMN_PASSWORD
+            fieldName="Password"
+        if tocp=="uid":
+            fieldToCopy=COLUMN_USERNAME
+            fieldName="User name"
+        if tocp=="email":
+            fieldToCopy=COLUMN_EMAIL
+            fieldName="Email"
+        if tocp=="url":
+            fieldToCopy=COLUMN_URL
+            fieldName="URL"
+        if tocp=="comment":
+            fieldToCopy=COLUMN_COMMENT
+            fieldName="Comment"
+
+    loadAccounts()
+    arg=inputList[1]
+
+    rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
+    for row in rows:
+        #printAccountRow(row)
+        name=row[COLUMN_NAME]
+        f=row[fieldToCopy]
+        copyToClipboard(f)
+        if f=="":
+            print("%s: %s is empty." % (name,fieldName))
+        else:
+            print("%s: %s copied to clipboard." % (name,fieldName))
+
 
 def viewCommand(inputList):
     """
@@ -247,12 +447,9 @@ def viewCommand(inputList):
 
     loadAccounts()
     arg=inputList[1]
-    
-    where="where name like \"%s%%\"" % arg
-    sql="select %s,%s,%s,%s,%s,%s,%s,%s from accounts %s order by %s" % (COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT,where,COLUMN_NAME)
-    debug("SQL: %s" % sql)
-    formatString=getColumnFormatString(2,10,delimiter=" ",align="<")
-    for row in DATABASE_CURSOR.execute(sql):
+
+    rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
+    for row in rows:
         printAccountRow(row)
         pwd=row[COLUMN_PASSWORD]
         if CONFIG[CFG_COPY_PASSWORD_ON_VIEW]==True:
@@ -277,10 +474,27 @@ def configCommand(inputList):
         configList()
 
 
+def pwdCommand(inputList):
+    """
+    ||Generate password(s) using simple custom generator.
+    """
+    print("Not yet implemented.")
+    #TODO: make simple password generator that chooses random letters,numbers and symbols
+
+def pwgenCommand(inputList):
+    """
+    [<pwgen opts and args>]||Generate password(s) using pwgen.
+    """
+    debug("entering pwgenCommand")
+    if pwgenAvailable()==True:
+        pwds=pwgenPassword(inputList[1:])
+        print(pwds)
+    else:
+        print ("pwgen is not available. No passwords generated.")
+
 def exitCommand(inputList):
     """||Exit program."""
     pass
-
 
 def helpCommand(inputList):
     """||This help."""
@@ -318,40 +532,66 @@ def helpCommand(inputList):
         print("  ",formatStringName.format(c[0]),formatStringArgs.format(c[1]),formatStringDesc.format(c[2]))
 
 #============================================================================================
-#utility functions
+#functions
+
+def saveAccounts():
+    #save accounts
+    #selet all accounts from accounts db 
+    #encrypt one at a time and save to file
+
+    createPasswordFileBackups()
+
+    accounts=[]
+    rows=executeSelect(DATABASE_ACCOUNTS_TABLE_COLUMNS,None,None)
+    for row in rows:
+        account=[]
+        for columnName in DATABASE_ACCOUNTS_TABLE_COLUMNS:
+            value=row[columnName]
+            account.append("%s:%s" % (columnName,value))
+        encryptedAccount=encryptString(KEY,FIELD_DELIM.join(account))
+        accounts.append(encryptedAccount)
+
+    createNewFile(CLI_PASSWORD_FILE,accounts)
+
+
+def makeAccountString(accountDict):
+    account=[]
+    for key in accountDict:
+        value=accountDict[key]
+        account.append("%s:%s" % (key,value))
+    account=(FIELD_DELIM.join(account))
+    return account
+
+def getPassword():
+    pwd=""
+    if pwgenAvailable():
+        print("Password generated using pwgen. Type your password or type 'p' to generate new password.")
+        pwd=pwgenPassword()
+        pwd2=prompt("Password (%s): " % pwd)
+        debug("pwd2: %s (%d)" % (pwd2,len(pwd2)))
+        while pwd2.lower()=="p":
+            pwd=pwgenPassword()
+            pwd2=prompt("Password (%s): " % pwd)
+        if pwd2!="":
+            pwd=pwd2
+    else:
+        pwd=prompt("Password : ")
+
+    return pwd
 
 def printAccountRow(row):
     formatString=getColumnFormatString(2,10,delimiter=" ",align="<")
-    name=row[COLUMN_NAME]
     print("===============================")# % (name))
-    print(formatString.format(COLUMN_NAME,name))
-    #print "========== %s ==========" % name
-    url=row[COLUMN_URL]
-    print(formatString.format(COLUMN_URL,url))
-    username=row[COLUMN_USERNAME]
-    print(formatString.format(COLUMN_USERNAME,username))
-    email=row[COLUMN_EMAIL]
-    print(formatString.format(COLUMN_EMAIL,email))
-    pwd=row[COLUMN_PASSWORD]
-    print(formatString.format(COLUMN_PASSWORD,pwd))
-    timestamp = row[COLUMN_CREATED]
-    print(formatString.format(COLUMN_CREATED,timestamp))
-    timestamp = row[COLUMN_UPDATED]
-    print(formatString.format(COLUMN_UPDATED,timestamp))
-    comment=row[COLUMN_COMMENT]
-    print(formatString.format(COLUMN_COMMENT,comment))
+    fields=[COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_COMMENT]
+
+    for field in fields:
+        value=row[field]
+        print(formatString.format(field,value))
 
 def shortenString(str):
     if len(str)>CONFIG[CFG_COLUMN_LENGTH]:
         str="%s..." % str[0:CONFIG[CFG_COLUMN_LENGTH]-3]
     return str
-
-def accountLine(account,maxColumnLength,formatString):
-    desc=account[JSONKEY_COMMENT]
-    if len(desc)>maxColumnLength:
-        desc="%s..." % desc[0:maxColumnLength-3]
-    line=formatString.format(account[JSONKEY_NAME],account[JSONKEY_USERNAME],account[JSONKEY_EMAIL],account[JSONKEY_PWD],desc)
-    return line
 
 def getColumnFormatString(numberOfColumns,columnLength,delimiter="|",align="^"):
     header="{{:%s{ln}}}" % align
@@ -364,10 +604,15 @@ def getColumnFormatString(numberOfColumns,columnLength,delimiter="|",align="^"):
     debug("Format string: %s" % formatString)
     return formatString
 
-def verifyArgs(inputList,numberOfArgs):
+def verifyArgs(inputList,numberOfArgs,listOfAllowedNumberOfArgs=None):
     ilen=len(inputList)
     debug("len(inputList): %d" % ilen)
-    if ilen != numberOfArgs:
+    correctNumberOfArgs=False
+    if listOfAllowedNumberOfArgs!=None and ilen in listOfAllowedNumberOfArgs:
+        correctNumberOfArgs=True
+    else:
+        correctNumberOfArgs=ilen == numberOfArgs
+    if not correctNumberOfArgs:
         cmdName=inputList[0].lower()
         cmd="%sCommand" % cmdName
         func=globals().get(cmd)
@@ -377,6 +622,11 @@ def verifyArgs(inputList,numberOfArgs):
         return False
     return True
 
+def modPrompt(field,defaultValue):
+    n=prompt("%s (%s): " % (field,defaultValue))
+    if n=="":
+        n=defaultValue
+    return n
 
 def loadConfig():
     #load config to sqlite database, if db not exists load defaults
@@ -417,6 +667,28 @@ def configSet(key,value):
     CONFIG[key]=value
     saveConfig()
 
+def pwgenAvailable():
+    try:
+        subprocess.check_output(["pwgen"])
+        return True
+    except:
+        print("pwgen is not available.")
+        return False
+
+def pwgenPassword(argList=None):
+    pwd=""
+
+    if pwgenAvailable():
+        cmd=["pwgen"]
+        if argList is None or len(argList)==0:
+            argList=CONFIG['CFG_PWGEN_DEFAULT_OPTS_ARGS'].split()
+
+        for arg in argList:
+            cmd.append(arg)
+        pwd=subprocess.check_output(cmd)
+        pwd=pwd.decode("utf-8").strip()
+    return pwd
+
 def versionInfo():
     print("%s v%s" % (PROGRAMNAME, VERSION))
     print(COPYRIGHT)
@@ -447,6 +719,7 @@ def copyToClipboard(str):
 #============================================================================================
 #encryption/decryption related functions
 
+
 def askPassphrase(str):
     import getpass
     passphrase=getpass.getpass(str)
@@ -462,7 +735,11 @@ def encryptString(key,str):
     return encryptedString.decode("utf-8")
 
 def decryptString(key,str):
+    if str==None or str=="":
+        return
     fernet = Fernet(key)
+    #print("string to decrypt: %s " % str)
+    #print("key: %s " % key)
     decryptedString = fernet.decrypt(str.encode("utf-8"))
     return decryptedString.decode("utf-8")
 
@@ -478,7 +755,6 @@ def openDatabase():
     sql=[]
     sql.append("CREATE TABLE accounts ")
     sql.append("(")
-        #DATABASE_ACCOUNTS_TABLE_COLUMN_CONSTRAINTS
     for column in DATABASE_ACCOUNTS_TABLE_COLUMNS:
         sql.append(" ")
         sql.append(column)
@@ -488,8 +764,6 @@ def openDatabase():
         else:
             sql.append(" DEFAULT '' ")
         sql.append(",")
-    #sql.append(" TEXT, ".join(DATABASE_ACCOUNTS_TABLE_COLUMNS))
-    #sql.append(" TEXT")
     sql=sql[:-1]
     sql.append(")")
     sql="".join(sql)
@@ -504,33 +778,60 @@ def closeDatabase():
     DATABASE=None
     DATABASE_CURSOR=None
 
+def executeSelect(listOfColumnNames,whereNameStartsWith=None,orderBy=COLUMN_NAME,returnSQLOnly=False):
+    where=""
+    if whereNameStartsWith is not None:
+        where="where name like \"%s%%\"" % whereNameStartsWith
+    cols=",".join(listOfColumnNames)
+    orderClause=""
+    if orderBy is not None:
+        orderClause="order by %s" % orderBy
+    sql="select %s from accounts %s %s" % (cols,where,orderClause)
+    debug("executeSelect SQL: %s" % sql)
+    if returnSQLOnly==True:
+        return sql
+    else:
+        return DATABASE_CURSOR.execute(sql)
+
+def insertAccountToDB(accountString):
+    accountDict=accountStringToDict(accountString)
+    columnNames=[]
+    values=[]
+    qmarks=[]
+    for key in accountDict.keys():            
+        value=accountDict[key]
+        if value is not "":
+            columnNames.append(key)
+            values.append(value)
+            qmarks.append("?")
+    sql=[]
+
+    sql.append("insert into accounts (")
+    sql.append(",".join(columnNames))
+    sql.append(") values (")
+    sql.append(",".join(qmarks))
+    sql.append(")")
+    sql="".join(sql)
+    debug("SQL: %s" % sql)
+    debug(tuple(values))
+    DATABASE_CURSOR.execute(sql,values)
+
+def insertAccountToFile(accountString):
+    encryptedAccount=encryptString(KEY,accountString)
+    appendStringToFile(CLI_PASSWORD_FILE,encryptedAccount)
+
 #import accounts to database
 def loadAccounts():
+    if os.path.isfile(CLI_PASSWORD_FILE) == False:
+        print("No accounts. Add accounts using add-command.")
+        return
+
     accounts=readFileAsList(CLI_PASSWORD_FILE)
     for account in accounts:
+        if account==None or account=="":
+            continue
         decryptedAccount=decryptString(KEY,account)
-        accountDict=accountStringToDict(decryptedAccount)
-        columnNames=[]
-        values=[]
-        qmarks=[]
-        for key in accountDict.keys():            
-            value=accountDict[key]
-            if value is not "":
-                columnNames.append(key)
-                values.append(value)
-                qmarks.append("?")
-                #print("%s=%s" % (key,value))
-        sql=[]
-        sql.append("insert into accounts (")
-        sql.append(",".join(columnNames))
-        sql.append(") values (")
-        sql.append(",".join(qmarks))
-        sql.append(")")
-        sql="".join(sql)
-        debug("SQL: %s" % sql)
-        debug(tuple(values))
-        DATABASE_CURSOR.execute(sql,values)
-
+        insertAccountToDB(decryptedAccount)
 
 def accountStringToDict(str):
     account=str.split(FIELD_DELIM)
@@ -556,7 +857,7 @@ def findMaxKeyLength(dictionary):
 
 def createNewFile(filename, lines=[]):
     fileExisted=os.path.isfile(filename)
-    file=open(filename,"w")
+    file=open(filename,"w",encoding="utf-8")
     file.write("\n".join(lines))
     file.close()
     if fileExisted:
@@ -565,12 +866,19 @@ def createNewFile(filename, lines=[]):
         debug("Created new file: %s" % filename)
 
 def appendToFile(filename, lines=[]):
-    file=open(filename,"a")
+    file=open(filename,"a",encoding="utf-8")
+    file.write("\n")
     file.write("\n".join(lines))
     file.close()
 
+def appendStringToFile(filename, str):
+    file=open(filename,"a",encoding="utf-8")
+    file.write("\n")
+    file.write(str)
+    file.close()
+
 def readFileAsString(filename):
-    file=open(filename,"r")
+    file=open(filename,"r",encoding="utf-8")
     lines=[]
     for line in file:
         lines.append(line)
@@ -578,30 +886,42 @@ def readFileAsString(filename):
     return "".join(lines)
 
 def readFileAsList(filename):
-    file=open(filename,"r")
+    file=open(filename,"r",encoding="utf-8")
     lines=[]
     for line in file:
         lines.append(line.strip())
     file.close()
     return lines
 
-def createFileBackups(filename,maxBackups):
-    if os.path.isfile(filename)==False:
-        return
-    currentBackup=maxBackups
-    while currentBackup>0:
-        backupFile="%s.%d" % (passwordFile, currentBackup)
-        if os.path.isfile(backupFile) == True:
-            shutil.copy2(backupFile, '%s.%d' % (passwordFile,currentBackup+1))
-        debug("Backup file: %s" % backupFile)
-        currentBackup=currentBackup-1
-    shutil.copy2(passwordFile, '%s.1' % passwordFile)
+def createPasswordFileBackups():
+    try:
+        passwordFile=filename=CLI_PASSWORD_FILE
+        maxBackups=CONFIG[CFG_MAX_PASSWORD_FILE_BACKUPS]
+        if os.path.isfile(filename)==False:
+            return
+        currentBackup=maxBackups
+        filenameTemplate="%s-v%s.%d"
+        while currentBackup>0:
+            backupFile= filenameTemplate % (passwordFile,VERSION,currentBackup)
+            if os.path.isfile(backupFile) == True:
+                shutil.copy2(backupFile, filenameTemplate % (passwordFile,VERSION,currentBackup+1))
+            debug("Backup file: %s" % backupFile)
+            currentBackup=currentBackup-1
+        shutil.copy2(passwordFile, filenameTemplate % (passwordFile,VERSION,1))
+    except:
+        printError("Password file back up failed.")
+        error(fileOnly=True)
 
 def toHexString(byteStr):
     return ''.join(["%02X" % ord(x) for x in byteStr]).strip()
 
 def prompt(str):
+    #inputStr=""
+    #try:
     inputStr = input(str)
+    #except KeyboardInterrupt:
+    #    pass
+
     #inputStr=unicode(inputStr,"UTF-8")
     return inputStr
 
@@ -617,10 +937,11 @@ def debug(str):
 def printError(str):
     print("[ERROR]: %s" % str)
 
-def error():
+def error(fileOnly=False):
     import traceback
     str=traceback.format_exc()
-    print(str)
+    if not fileOnly:
+        print(str)
     msg="%s: %s" % (datetime.now(),str)
     appendToFile(ERROR_FILE,[msg])
 
