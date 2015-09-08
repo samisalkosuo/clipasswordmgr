@@ -28,9 +28,13 @@
 #   cryptography https://cryptography.io/en/latest/
 #   pyperclip https://github.com/asweigart/pyperclip
 #
-#Developed with Python 3.4.3 on Windows 7 & Cygwin-x64 and OS X Yosemite
+#Install using pip (or pip3):
+#  pip3 install cryptography
+#  pip3 install pyperclip
+#
 #
 #Some design choices:
+#   developed with Python 3 on Windows 7 & Cygwin-x64 and OS X
 #   only one source file
 #   store password in encrypted text file
 #   use sqlite in-memory to work with accounts
@@ -61,9 +65,7 @@ COPYRIGHT="Copyright (C) 2015 by Sami Salkosuo."
 LICENSE="Licensed under the MIT License."
 
 PROMPTSTRING="pwdmgr>"
-DEBUG=False
 ERROR_FILE="clipwdmgr_error.log"
-DEBUG_FILE="clipwdmgr_debug.log"
 
 KEY=None
 
@@ -97,17 +99,21 @@ CFG_COLUMN_LENGTH="COLUMN_LENGTH"
 CFG_COPY_PASSWORD_ON_VIEW="COPY_PASSWORD_ON_VIEW"
 CFG_PWGEN_DEFAULT_OPTS_ARGS="CFG_PWGEN_DEFAULT_OPTS_ARGS"
 CFG_MAX_PASSWORD_FILE_BACKUPS="CFG_MAX_PASSWORD_FILE_BACKUPS"
+CFG_SHOW_DEBUG="CFG_SHOW_DEBUG"
 #defaults
 CONFIG={
     CFG_MASKPASSWORD:True,
     CFG_COPY_PASSWORD_ON_VIEW:True,
     CFG_COLUMN_LENGTH:10,
     CFG_PWGEN_DEFAULT_OPTS_ARGS:"-cn1 12 1",
-    CFG_MAX_PASSWORD_FILE_BACKUPS:10
+    CFG_MAX_PASSWORD_FILE_BACKUPS:10,
+    CFG_SHOW_DEBUG:False
     }
 
-#configuration stored as json file in home dir
+#configuration stored as json in home dir
 CONFIG_FILE="%s/.clipwdmgr.cfg" % (expanduser("~"))
+
+
 
 #command line args
 args=None
@@ -116,23 +122,18 @@ def parseCommandLineArgs():
     #parse command line args
     parser = argparse.ArgumentParser(description='Command Line Password Manager.')
     parser.add_argument('-c','--cmd', nargs='*', help='Execute command(s) and exit.')
-    parser.add_argument('-f','--file', nargs=1,metavar='FILE', help='Password file.')
+    parser.add_argument('-f','--file', nargs=1,metavar='FILE', help='Passwords file.')
     parser.add_argument('-d','--decrypt', nargs=1, metavar='STR',help='Decrypt single account string.')
-    parser.add_argument('--migrate', action='store_true', help='Migrate passwords from version 0.3.')
-    parser.add_argument('--debug', action='store_true', help='Show debug info.')
-    parser.add_argument('--version', action='version', version="%s v%s" % (PROGRAMNAME, VERSION))
+    parser.add_argument('--migrate', action='store_true', help='Migrate passwords from version 0.3 (this will be removed in future version).')
+    parser.add_argument('-v,--version', action='version', version="%s v%s" % (PROGRAMNAME, VERSION))
     global args
-    global DEBUG
     args = parser.parse_args()
-    DEBUG=args.debug
 
 #============================================================================================
 #main function
 def main():
     print("%s v%s" % (PROGRAMNAME, VERSION))
     print()
-    if DEBUG:
-        print("DEBUG is True")
 
     if args.file:
         global CLI_PASSWORD_FILE
@@ -210,20 +211,27 @@ def callCmd(userInput):
 
 def aliasCommand(inputList):
     """
-    [<name> <cmd>]||View aliases or create alias named 'name' for command 'cmd'.
+    [<name> <cmd> <cmdargs>]||View aliases or create alias named 'name' for command 'cmd'.
     """
     print("Not yet implemented")
     
 def infoCommand(inputList):
     """
-    ||Information about accounts.
+    ||Information about the program.
     """
-    #print total accounts
-    #password file name, location, size
-    #last updated
-    #back files location,name,accounts,last updated?
-    #config? here too
-    print("Not yet implemented")
+
+    size=os.path.getsize(CLI_PASSWORD_FILE)
+    formatString=getColumnFormatString(2,25,delimiter=": ",align="<")
+    print(formatString.format("CLI_PASSWORD_FILE",CLI_PASSWORD_FILE))
+    print(formatString.format("Password file size",sizeof_fmt(size)))
+
+    loadAccounts()
+    totalAccounts=(DATABASE_CURSOR.execute("select count(*) from accounts").fetchone()[0])
+    print(formatString.format("Total accounts",str(totalAccounts)))
+    lastUpdated=(DATABASE_CURSOR.execute("select updated from accounts order by updated desc").fetchone()[0])
+    print(formatString.format("Last updated",lastUpdated))
+    print("Configuration:")
+    configList("  ")
 
 def addCommand(inputList):
     """
@@ -298,14 +306,10 @@ def deleteCommand(inputList):
     rows=list(executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg))
     for row in rows:
         printAccountRow(row)
-        accountDeleted=False
         if boolValue(prompt("Delete this account (yes/no)? ")):
             sql="delete from accounts where %s=?" % (COLUMN_CREATED)
             DATABASE_CURSOR.execute(sql,(row[COLUMN_CREATED],))
             DATABASE.commit()
-            accountDeleted=True
-
-        if accountDeleted==True:
             saveAccounts()
             print("Account deleted.")
 
@@ -325,7 +329,6 @@ def modifyCommand(inputList):
     rows=list(executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg))
     for row in rows:
         printAccountRow(row)
-        accountUpdated=False
         if boolValue(prompt("Modify this account (yes/no)? ")):
             values=[]
             name=modPrompt("Name",row[COLUMN_NAME])
@@ -340,8 +343,8 @@ def modifyCommand(inputList):
             email=modPrompt("Email",row[COLUMN_EMAIL])
             values.append(email)
 
-            if pwgenAvailable()==True:
-                print("pwgen is available. Type your password or type 'p' to generate password or 'c' to use original password.")
+            #if pwgenAvailable()==True:
+            print("Password generator is available. Type your password or type 'p' to generate password or 'c' to use original password.")
             originalPassword=row[COLUMN_PASSWORD]
             pwd=modPrompt("Password OLD: (%s) NEW:" % (originalPassword),originalPassword)
             while pwd=="p":
@@ -372,9 +375,6 @@ def modifyCommand(inputList):
                 )
             DATABASE_CURSOR.execute(sql,tuple(values))
             DATABASE.commit()
-            accountUpdated=True
-
-        if accountUpdated==True:
             saveAccounts()
             print("Account updated.")
 
@@ -462,6 +462,8 @@ def configCommand(inputList):
     """
     [<key>=<value>]||List available configuration or set config values.
     """
+    if verifyArgs(inputList,0,[1,2])==False:
+        return
     if(len(inputList)==2):
         cmd=inputList[1]
         if cmd.find("=")>-1:
@@ -476,10 +478,9 @@ def configCommand(inputList):
 
 def pwdCommand(inputList):
     """
-    ||Generate password(s) using simple custom generator.
+    ||Generate 12-character (using a-z,A-Z and 0-9) password using simple generator.
     """
-    print("Not yet implemented.")
-    #TODO: make simple password generator that chooses random letters,numbers and symbols
+    print(pwdPassword())
 
 def pwgenCommand(inputList):
     """
@@ -547,6 +548,8 @@ def saveAccounts():
         account=[]
         for columnName in DATABASE_ACCOUNTS_TABLE_COLUMNS:
             value=row[columnName]
+            if value is not None:
+                value=value.strip()
             account.append("%s:%s" % (columnName,value))
         encryptedAccount=encryptString(KEY,FIELD_DELIM.join(account))
         accounts.append(encryptedAccount)
@@ -564,18 +567,18 @@ def makeAccountString(accountDict):
 
 def getPassword():
     pwd=""
-    if pwgenAvailable():
-        print("Password generated using pwgen. Type your password or type 'p' to generate new password.")
+#    if pwgenAvailable():
+    print("Password generated. Type your password or type 'p' to generate new password.")
+    pwd=pwgenPassword()
+    pwd2=prompt("Password (%s): " % pwd)
+    debug("pwd2: %s (%d)" % (pwd2,len(pwd2)))
+    while pwd2.lower()=="p":
         pwd=pwgenPassword()
         pwd2=prompt("Password (%s): " % pwd)
-        debug("pwd2: %s (%d)" % (pwd2,len(pwd2)))
-        while pwd2.lower()=="p":
-            pwd=pwgenPassword()
-            pwd2=prompt("Password (%s): " % pwd)
-        if pwd2!="":
-            pwd=pwd2
-    else:
-        pwd=prompt("Password : ")
+    if pwd2!="":
+        pwd=pwd2
+ #   else:
+  #      pwd=prompt("Password : ")
 
     return pwd
 
@@ -626,6 +629,8 @@ def modPrompt(field,defaultValue):
     n=prompt("%s (%s): " % (field,defaultValue))
     if n=="":
         n=defaultValue
+    else:
+        n=n.strip()
     return n
 
 def loadConfig():
@@ -648,11 +653,15 @@ def saveConfig():
     json.dump(CONFIG,f)
     f.close()
 
-def configList():
+def configList(indent=""):
     formatString=getColumnFormatString(2,findMaxKeyLength(CONFIG),delimiter=": ",align="<")
     for key in sorted(CONFIG.keys()):
         value=CONFIG[key]
-        print(formatString.format(key,value))
+        if value==1:
+            value="True"
+        if value==0:
+            value="False"
+        print(indent+formatString.format(key,value))
 
 def configSet(key,value):
     #set config to dict
@@ -687,7 +696,17 @@ def pwgenPassword(argList=None):
             cmd.append(arg)
         pwd=subprocess.check_output(cmd)
         pwd=pwd.decode("utf-8").strip()
+    else:
+        pwd=pwdPassword()
+
     return pwd
+
+def pwdPassword():
+    chars="1234567890poiuytrewqasdfghjklmnbvcxzQWERTYUIOPLKJHGFDSAZXCVBNM"
+    pwd=[]
+    for i in range(12):
+        pwd.append(random.choice(chars))
+    return "".join(pwd)
 
 def versionInfo():
     print("%s v%s" % (PROGRAMNAME, VERSION))
@@ -730,6 +749,8 @@ def askPassphrase(str):
     return passphrase
 
 def encryptString(key,str):
+    if str==None or str=="":
+        return
     fernet = Fernet(key)
     encryptedString = fernet.encrypt(str.encode("utf-8"))
     return encryptedString.decode("utf-8")
@@ -738,8 +759,6 @@ def decryptString(key,str):
     if str==None or str=="":
         return
     fernet = Fernet(key)
-    #print("string to decrypt: %s " % str)
-    #print("key: %s " % key)
     decryptedString = fernet.decrypt(str.encode("utf-8"))
     return decryptedString.decode("utf-8")
 
@@ -812,8 +831,8 @@ def insertAccountToDB(accountString):
     sql.append(",".join(qmarks))
     sql.append(")")
     sql="".join(sql)
-    debug("SQL: %s" % sql)
-    debug(tuple(values))
+    #debug("SQL: %s" % sql)
+    #debug(tuple(values))
     DATABASE_CURSOR.execute(sql,values)
 
 def insertAccountToFile(accountString):
@@ -912,6 +931,14 @@ def createPasswordFileBackups():
         printError("Password file back up failed.")
         error(fileOnly=True)
 
+def sizeof_fmt(num, suffix='B'):
+    #from http://stackoverflow.com/a/1094933
+    for unit in ['','K','M','G','T','P','E','Z']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
 def toHexString(byteStr):
     return ''.join(["%02X" % ord(x) for x in byteStr]).strip()
 
@@ -926,12 +953,8 @@ def prompt(str):
     return inputStr
 
 def debug(str):
-    if DEBUG:
-        msg="%s: %s" % (datetime.now(),str)
-        if DEBUG_FILE is not None:
-            file=open(DEBUG_FILE,"a")
-            file.write("%s\n" % msg)
-            file.close()
+    if CONFIG[CFG_SHOW_DEBUG]==True:
+        msg="[DEBUG] %s: %s" % (datetime.now(),str)
         print(msg)
 
 def printError(str):
