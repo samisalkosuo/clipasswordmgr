@@ -5,7 +5,18 @@ Command Line Password Manager is a tool to manage passwords in the command line.
 
 Encryption/decryption is done using Python cryptography library: https://cryptography.io/en/latest/
 
-Usage:
+## Install
+
+CLI Password Manager requires Python3, so that must be installed.
+
+- Download the files, at minimum clipwdmgr.py.
+- Install mandatory prereq (cryptography): pip install cryptography.
+- Optional: install prereq (pyperclip): pip install pyperclip.
+- Optional: install command line password generator: pwgen
+- Use environment variable CLIPWDMGR_FILE to specify path and file of your password
+  file.
+
+## Usage
 
 Execute clipasswordmgr.py and a shell opens. Start by adding new account using 'add' command.
 
