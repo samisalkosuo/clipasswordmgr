@@ -28,7 +28,7 @@
 #   cryptography https://cryptography.io/en/latest/
 #   pyperclip https://github.com/asweigart/pyperclip
 #
-#Install using pip (or pip3):
+#Install prereqs using pip (or pip3):
 #  pip3 install cryptography
 #  pip3 install pyperclip
 #
@@ -65,7 +65,6 @@ COPYRIGHT="Copyright (C) 2015 by Sami Salkosuo."
 LICENSE="Licensed under the MIT License."
 
 PROMPTSTRING="pwdmgr>"
-ERROR_FILE="clipwdmgr_error.log"
 
 KEY=None
 
@@ -77,7 +76,7 @@ DATABASE=None
 DATABASE_CURSOR=None
 #columns for ACCOUNTS table and also fields in account string
 COLUMN_NAME="NAME"
-#CREATED column uniquely identifies account, higly unlikely that two accounts are created at the same time :-)
+#CREATED column uniquely identifies account, highly unlikely that two accounts are created at the same time :-)
 COLUMN_CREATED="CREATED"
 COLUMN_UPDATED="UPDATED"
 COLUMN_USERNAME="USERNAME"
@@ -85,7 +84,7 @@ COLUMN_URL="URL"
 COLUMN_EMAIL="EMAIL"
 COLUMN_PASSWORD="PASSWORD"
 COLUMN_COMMENT="COMMENT"
-DATABASE_ACCOUNTS_TABLE_COLUMNS=[COLUMN_NAME,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_USERNAME,COLUMN_URL,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT]
+DATABASE_ACCOUNTS_TABLE_COLUMNS=[COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT]
 DATABASE_ACCOUNTS_TABLE_COLUMN_IS_TIMESTAMP=[COLUMN_CREATED,COLUMN_UPDATED]
 
 #environment variable that holds password file path and name
@@ -97,23 +96,30 @@ CLI_PASSWORD_FILE=os.environ.get(CLIPWDMGR_FILE)
 CFG_MASKPASSWORD="MASKPASSWORD"
 CFG_COLUMN_LENGTH="COLUMN_LENGTH"
 CFG_COPY_PASSWORD_ON_VIEW="COPY_PASSWORD_ON_VIEW"
-CFG_PWGEN_DEFAULT_OPTS_ARGS="CFG_PWGEN_DEFAULT_OPTS_ARGS"
-CFG_MAX_PASSWORD_FILE_BACKUPS="CFG_MAX_PASSWORD_FILE_BACKUPS"
-CFG_SHOW_DEBUG="CFG_SHOW_DEBUG"
+CFG_MASKPASSWORD_IN_VIEW="MASKPASSWORD_IN_VIEW"
+CFG_PWGEN_DEFAULT_OPTS_ARGS="PWGEN_DEFAULT_OPTS_ARGS"
+CFG_MAX_PASSWORD_FILE_BACKUPS="MAX_PASSWORD_FILE_BACKUPS"
+CFG_ALIASES="ALIASES"
+CFG_SAVE_CMD_HISTORY="SAVE_COMMAND_HISTORY"
+CFG_HISTORY="HISTORY"
 #defaults
 CONFIG={
     CFG_MASKPASSWORD:True,
     CFG_COPY_PASSWORD_ON_VIEW:True,
+    CFG_MASKPASSWORD_IN_VIEW:False,
     CFG_COLUMN_LENGTH:10,
-    CFG_PWGEN_DEFAULT_OPTS_ARGS:"-cn1 12 1",
+    CFG_PWGEN_DEFAULT_OPTS_ARGS:"-cns1 12 1",
     CFG_MAX_PASSWORD_FILE_BACKUPS:10,
-    CFG_SHOW_DEBUG:False
+    CFG_SAVE_CMD_HISTORY:True,
+    CFG_ALIASES:{},
+    CFG_HISTORY:[]
     }
 
 #configuration stored as json in home dir
 CONFIG_FILE="%s/.clipwdmgr.cfg" % (expanduser("~"))
 
 
+DEBUG=False
 
 #command line args
 args=None
@@ -124,7 +130,7 @@ def parseCommandLineArgs():
     parser.add_argument('-c','--cmd', nargs='*', help='Execute command(s) and exit.')
     parser.add_argument('-f','--file', nargs=1,metavar='FILE', help='Passwords file.')
     parser.add_argument('-d','--decrypt', nargs=1, metavar='STR',help='Decrypt single account string.')
-    parser.add_argument('--migrate', action='store_true', help='Migrate passwords from version 0.3 (this will be removed in future version).')
+    parser.add_argument('--migrate', action='store_true', help='Migrate passwords from version 0.3 (this will be removed in a future version).')
     parser.add_argument('-v,--version', action='version', version="%s v%s" % (PROGRAMNAME, VERSION))
     global args
     args = parser.parse_args()
@@ -176,6 +182,7 @@ def main():
 
     loadConfig()
     #shell
+    #TODO: curses based shell with command history, completion, etc
     userInput=prompt(PROMPTSTRING)
     while userInput!="exit":
         openDatabase()
@@ -202,8 +209,18 @@ def callCmd(userInput):
     function = globals().get(functionName)
     if not function:
         #check alias
-        print("%s not implemented." % cmd)
+        aliases=CONFIG[CFG_ALIASES]
+        if cmd in aliases.keys():
+            newCmd="%s %s" % (aliases[cmd]," ".join(inputList[1:]))
+            callCmd(newCmd)
+        else:
+            print("%s not implemented." % cmd)
     else:
+        #TODO: save to command history
+        if userInput.find("history")==-1 and CONFIG[CFG_SAVE_CMD_HISTORY]==True:
+            history=CONFIG[CFG_HISTORY]
+            history.append(userInput)
+            saveConfig()
         function(inputList)
 
 #============================================================================================
@@ -211,10 +228,45 @@ def callCmd(userInput):
 
 def aliasCommand(inputList):
     """
-    [<name> <cmd> <cmdargs>]||View aliases or create alias named 'name' for command 'cmd'.
+    [<name> <cmd> <cmdargs>]||View aliases or create alias named 'name' for command 'cmd cmdargs'.
     """
-    print("Not yet implemented")
-    
+    aliases=CONFIG[CFG_ALIASES]
+    if(len(inputList)==1):
+        #list aliases
+        for alias in sorted(aliases.keys()):
+            print("%s='%s'" % (alias,aliases[alias]))
+    else:
+        #create new alias
+        alias=inputList[1]
+        cmd=inputList[2:]
+        aliases[alias]=" ".join(cmd)
+        saveConfig()
+
+def historyCommand(inputList):
+    """
+    [<index> [c] | clear]||View history, execute command or clear entire history. 'c' after index copies command to clipboard.
+    """
+    history=CONFIG[CFG_HISTORY]
+    if(len(inputList)==1):
+        #list history
+        i=0
+        for cmd in history:
+            print("%d: %s" % (i,cmd))
+            i=i+1
+    if(len(inputList)==2):
+        arg=inputList[1]
+        if arg=="clear":
+            CONFIG[CFG_HISTORY]=[]
+            saveConfig()
+        else:
+            cmd=history[int(arg)]
+            callCmd(cmd)
+    if(len(inputList)==3):
+        arg=inputList[1]
+        cmd=history[int(arg)]
+        copyToClipboard(cmd)
+        print("Command: '%s' copied to clipboard." % cmd)
+
 def infoCommand(inputList):
     """
     ||Information about the program.
@@ -230,8 +282,15 @@ def infoCommand(inputList):
     print(formatString.format("Total accounts",str(totalAccounts)))
     lastUpdated=(DATABASE_CURSOR.execute("select updated from accounts order by updated desc").fetchone()[0])
     print(formatString.format("Last updated",lastUpdated))
+    
+    print(formatString.format("Config file",CONFIG_FILE))
     print("Configuration:")
     configList("  ")
+    print("Aliases:")
+    #list aliases
+    aliases=CONFIG[CFG_ALIASES]
+    for alias in aliases.keys():
+        print("  %s='%s'" % (alias,aliases[alias]))
 
 def addCommand(inputList):
     """
@@ -271,6 +330,38 @@ def addCommand(inputList):
     createPasswordFileBackups()
     insertAccountToFile(accountString)
 
+    print("Account added.")
+
+def selectCommand(inputList):
+    """
+    [<rest of select SQL>]||Execute SELECT SQL and print results as columns.
+    """
+    debug("entering selectCommand")
+    if(len(inputList)==1):
+        #show help
+        formatString=getColumnFormatString(2,20,delimiter=": ",align="<")
+        print(formatString.format("Table","ACCOUNTS"))
+        print(formatString.format("Columns",",".join(DATABASE_ACCOUNTS_TABLE_COLUMNS)))
+    else:
+        loadAccounts()
+        sql=" ".join(inputList)
+        rows=DATABASE_CURSOR.execute(sql)
+        columns=DATABASE_CURSOR.description
+        columnNames=[]
+        for c in columns:
+            columnNames.append(c[0])
+        formatString=getColumnFormatString(len(columnNames),CONFIG[CFG_COLUMN_LENGTH])
+        headerLine=formatString.format(*columnNames)
+        print(headerLine)
+        for row in rows:
+            values=[]
+            for cname in columnNames:
+                value=row[cname]
+                if cname==COLUMN_PASSWORD and CONFIG[CFG_MASKPASSWORD]==True:
+                    value="********"          
+                values.append(shortenString(value))
+            accountLine=formatString.format(*values)
+            print(accountLine)
 
 def listCommand(inputList):
     """
@@ -281,17 +372,8 @@ def listCommand(inputList):
     if(len(inputList)==2):
         arg=inputList[1]
 
-    formatString=getColumnFormatString(6,CONFIG[CFG_COLUMN_LENGTH])
-    headerLine=formatString.format(COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT)
-    print(headerLine)
     rows=executeSelect([COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
-    for row in rows:
-        pwd=row[COLUMN_PASSWORD]
-        if CONFIG[CFG_MASKPASSWORD]==True:
-            pwd="********"          
-        pwd=shortenString(pwd)
-        accountLine=formatString.format(shortenString(row[COLUMN_NAME]),shortenString(row[COLUMN_URL]),shortenString(row[COLUMN_USERNAME]),shortenString(row[COLUMN_EMAIL]),pwd,shortenString(row[COLUMN_COMMENT]))
-        print(accountLine)
+    printAccountRows(rows)
 
 def deleteCommand(inputList):
     """
@@ -302,7 +384,7 @@ def deleteCommand(inputList):
         return
     loadAccounts()
     arg=inputList[1]
-
+    
     rows=list(executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg))
     for row in rows:
         printAccountRow(row)
@@ -312,7 +394,6 @@ def deleteCommand(inputList):
             DATABASE.commit()
             saveAccounts()
             print("Account deleted.")
-
 
 def modifyCommand(inputList):
     """
@@ -344,14 +425,17 @@ def modifyCommand(inputList):
             values.append(email)
 
             #if pwgenAvailable()==True:
-            print("Password generator is available. Type your password or type 'p' to generate password or 'c' to use original password.")
+            print("Password generator is available. Type your password or type 'p'/'ps' to generate password or 'c' to use original password.")
             originalPassword=row[COLUMN_PASSWORD]
             pwd=modPrompt("Password OLD: (%s) NEW:" % (originalPassword),originalPassword)
-            while pwd=="p":
-                pwd=pwgenPassword()
+            while pwd=="p" or pwd=="ps" or pwd=="c":
+                if pwd=="p":
+                    pwd=pwgenPassword()
+                if pwd=="ps":
+                    pwd=pwgenPassword(["-sy","12","1"])
+                if pwd=="c":
+                    pwd=originalPassword
                 pwd=modPrompt("Password OLD: (%s) NEW:" % (originalPassword),pwd)
-            if pwd=="c":
-                pwd=originalPassword
             values.append(pwd)
 
             comment=modPrompt("Comment",row[COLUMN_COMMENT])
@@ -384,24 +468,50 @@ def changepassphraseCommand(inputList):
     """
     debug("entering changepassphraseCommand")
     print("Not yet implemented.")
+    newKey=askPassphrase("New passphrase: ")
+    if newKey==None:
+        return
+    newKey2=askPassphrase("New passphrase again: ")
+    if newKey!=newKey2:
+        print("Passphrases do not match.")
+        return
+
+    loadAccounts()
+    global KEY
+    KEY=newKey
+    saveAccounts()
+    print ("Passphrase changed.")
 
 def searchCommand(inputList):
     """
-    <string in name or comment> | username=<string> | email=<string>||Search accounts that have matching string.
+    <string in name,url or comment> | username=<string> | email=<string>||Search accounts that have matching string.
     """
     debug("entering searchCommand")
     if verifyArgs(inputList,2)==False:
         return
-    print("Not yet implemented.")
+    loadAccounts()
+    arg=inputList[1]
+    where=""
+    if arg.startswith("username="):
+        arg=arg.replace("username=","")
+        where="where %s like '%%%s%%' " % (COLUMN_USERNAME,arg)
+    elif arg.startswith("email="):
+        arg=arg.replace("email=","")
+        where="where %s like '%%%s%%' " % (COLUMN_EMAIL,arg)
+    else:
+        where="where %s like '%%%s%%' or %s like '%%%s%%' or %s like '%%%s%%' " % (COLUMN_NAME,arg,COLUMN_COMMENT,arg,COLUMN_URL,arg)
+
+    rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],whereClause=where)
+    printAccountRows(rows)
 
 def copyCommand(inputList):
     """
-    <start of name> | [pwd | uid | email | url | comment]||Copy value of given field of account to clipboard. Default is pwd.
+    <start of name> | (pwd | uid | email | url | comment)||Copy value of given field of account to clipboard. Default is pwd.
     """
     if verifyArgs(inputList,None,[2,3])==False:
         return
 
-    #print("Not yet implemented.")
+    #TODO: more fine grained when selecting account, make it similar to view
     fieldToCopy=COLUMN_PASSWORD
     fieldName="Password"
     if len(inputList)==3:
@@ -439,16 +549,23 @@ def copyCommand(inputList):
 
 def viewCommand(inputList):
     """
-    <start of name>||View account(s) details.
+    <start of name> [username=<string>] [comment=<string>]||View account(s) details that start with given string and have matching username and/or comment.
     """
     debug("entering viewCommand")
-    if verifyArgs(inputList,2)==False:
+    if verifyArgs(inputList,0,[2,3,4])==False:
         return
 
     loadAccounts()
     arg=inputList[1]
-
-    rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
+    where="where name like \"%s%%\"" % arg
+    for input in inputList[2:]:
+        fields=["username","comment"]
+        for field in fields:
+            fe=field+"="
+            if input.find(fe)>-1:
+                where=where+" and %s like '%%%s%%'" % (field,input.replace(fe,""))
+        #has username
+    rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg,whereClause=where)
     for row in rows:
         printAccountRow(row)
         pwd=row[COLUMN_PASSWORD]
@@ -456,7 +573,6 @@ def viewCommand(inputList):
             print()
             copyToClipboard(pwd)
             print("Password copied to clipboard.")
-
 
 def configCommand(inputList):
     """
@@ -475,12 +591,14 @@ def configCommand(inputList):
         #list current config
         configList()
 
-
 def pwdCommand(inputList):
     """
-    ||Generate 12-character (using a-z,A-Z and 0-9) password using simple generator.
+    [length]||Generate password using simple generator with characters a-z,A-Z and 0-9. Default length is 12.
     """
-    print(pwdPassword())
+    pwdlen=12
+    if(len(inputList)==2):
+        pwdlen=int(inputList[1])
+    print(pwdPassword(pwdlen))
 
 def pwgenCommand(inputList):
     """
@@ -556,6 +674,19 @@ def saveAccounts():
 
     createNewFile(CLI_PASSWORD_FILE,accounts)
 
+def printAccountRows(rows):
+    #print account rows in columns
+    #used by list and search commands 
+    formatString=getColumnFormatString(6,CONFIG[CFG_COLUMN_LENGTH])
+    headerLine=formatString.format(COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT)
+    print(headerLine)
+    for row in rows:
+        pwd=row[COLUMN_PASSWORD]
+        if CONFIG[CFG_MASKPASSWORD]==True:
+            pwd="********"          
+        pwd=shortenString(pwd)
+        accountLine=formatString.format(shortenString(row[COLUMN_NAME]),shortenString(row[COLUMN_URL]),shortenString(row[COLUMN_USERNAME]),shortenString(row[COLUMN_EMAIL]),pwd,shortenString(row[COLUMN_COMMENT]))
+        print(accountLine)
 
 def makeAccountString(accountDict):
     account=[]
@@ -567,18 +698,18 @@ def makeAccountString(accountDict):
 
 def getPassword():
     pwd=""
-#    if pwgenAvailable():
-    print("Password generated. Type your password or type 'p' to generate new password.")
+    print("Password generated. Type your password or type 'p'/'ps' to generate new password.")
     pwd=pwgenPassword()
     pwd2=prompt("Password (%s): " % pwd)
     debug("pwd2: %s (%d)" % (pwd2,len(pwd2)))
-    while pwd2.lower()=="p":
-        pwd=pwgenPassword()
-        pwd2=prompt("Password (%s): " % pwd)
+    while pwd2.lower()=="p" or pwd2.lower()=="ps":
+        if pwd2=="p":
+            pwd2=pwgenPassword()
+        if pwd2=="ps":
+            pwd2=pwgenPassword(["-sy","12","1"])
+        pwd2=prompt("Password (%s): " % pwd2)
     if pwd2!="":
         pwd=pwd2
- #   else:
-  #      pwd=prompt("Password : ")
 
     return pwd
 
@@ -589,6 +720,8 @@ def printAccountRow(row):
 
     for field in fields:
         value=row[field]
+        if field==COLUMN_PASSWORD and CONFIG[CFG_MASKPASSWORD_IN_VIEW]==True:
+            value="********"          
         print(formatString.format(field,value))
 
 def shortenString(str):
@@ -656,12 +789,16 @@ def saveConfig():
 def configList(indent=""):
     formatString=getColumnFormatString(2,findMaxKeyLength(CONFIG),delimiter=": ",align="<")
     for key in sorted(CONFIG.keys()):
-        value=CONFIG[key]
-        if value==1:
-            value="True"
-        if value==0:
-            value="False"
-        print(indent+formatString.format(key,value))
+        if key is not CFG_ALIASES and key is not CFG_HISTORY:
+            value=CONFIG[key]
+            if value==1:
+                value="True"
+            if value==0:
+                value="False"
+            valueType=type(value).__name__
+            if valueType is not "str":
+                value=str(value)
+            print(indent+formatString.format(key,value))
 
 def configSet(key,value):
     #set config to dict
@@ -690,8 +827,7 @@ def pwgenPassword(argList=None):
     if pwgenAvailable():
         cmd=["pwgen"]
         if argList is None or len(argList)==0:
-            argList=CONFIG['CFG_PWGEN_DEFAULT_OPTS_ARGS'].split()
-
+            argList=CONFIG[CFG_PWGEN_DEFAULT_OPTS_ARGS].split()
         for arg in argList:
             cmd.append(arg)
         pwd=subprocess.check_output(cmd)
@@ -701,10 +837,10 @@ def pwgenPassword(argList=None):
 
     return pwd
 
-def pwdPassword():
+def pwdPassword(length=12):
     chars="1234567890poiuytrewqasdfghjklmnbvcxzQWERTYUIOPLKJHGFDSAZXCVBNM"
     pwd=[]
-    for i in range(12):
+    for i in range(length):
         pwd.append(random.choice(chars))
     return "".join(pwd)
 
@@ -712,6 +848,25 @@ def versionInfo():
     print("%s v%s" % (PROGRAMNAME, VERSION))
     print(COPYRIGHT)
     print(LICENSE)
+
+def createPasswordFileBackups():
+    try:
+        passwordFile=filename=CLI_PASSWORD_FILE
+        maxBackups=CONFIG[CFG_MAX_PASSWORD_FILE_BACKUPS]
+        if os.path.isfile(filename)==False:
+            return
+        currentBackup=maxBackups
+        filenameTemplate="%s-v%s-%d"
+        while currentBackup>0:
+            backupFile= filenameTemplate % (passwordFile,VERSION,currentBackup)
+            if os.path.isfile(backupFile) == True:
+                shutil.copy2(backupFile, filenameTemplate % (passwordFile,VERSION,currentBackup+1))
+            debug("Backup file: %s" % backupFile)
+            currentBackup=currentBackup-1
+        shutil.copy2(passwordFile, filenameTemplate % (passwordFile,VERSION,1))
+    except:
+        printError("Password file back up failed.")
+        error(fileOnly=True)
 
 def getDocString(commandFunc):
     #return tuple from command function
@@ -737,7 +892,6 @@ def copyToClipboard(str):
 
 #============================================================================================
 #encryption/decryption related functions
-
 
 def askPassphrase(str):
     import getpass
@@ -797,10 +951,12 @@ def closeDatabase():
     DATABASE=None
     DATABASE_CURSOR=None
 
-def executeSelect(listOfColumnNames,whereNameStartsWith=None,orderBy=COLUMN_NAME,returnSQLOnly=False):
+def executeSelect(listOfColumnNames,whereNameStartsWith=None,whereClause=None,orderBy=COLUMN_NAME,returnSQLOnly=False):
     where=""
     if whereNameStartsWith is not None:
         where="where name like \"%s%%\"" % whereNameStartsWith
+    if whereClause is not None:
+        where=whereClause
     cols=",".join(listOfColumnNames)
     orderClause=""
     if orderBy is not None:
@@ -912,25 +1068,6 @@ def readFileAsList(filename):
     file.close()
     return lines
 
-def createPasswordFileBackups():
-    try:
-        passwordFile=filename=CLI_PASSWORD_FILE
-        maxBackups=CONFIG[CFG_MAX_PASSWORD_FILE_BACKUPS]
-        if os.path.isfile(filename)==False:
-            return
-        currentBackup=maxBackups
-        filenameTemplate="%s-v%s.%d"
-        while currentBackup>0:
-            backupFile= filenameTemplate % (passwordFile,VERSION,currentBackup)
-            if os.path.isfile(backupFile) == True:
-                shutil.copy2(backupFile, filenameTemplate % (passwordFile,VERSION,currentBackup+1))
-            debug("Backup file: %s" % backupFile)
-            currentBackup=currentBackup-1
-        shutil.copy2(passwordFile, filenameTemplate % (passwordFile,VERSION,1))
-    except:
-        printError("Password file back up failed.")
-        error(fileOnly=True)
-
 def sizeof_fmt(num, suffix='B'):
     #from http://stackoverflow.com/a/1094933
     for unit in ['','K','M','G','T','P','E','Z']:
@@ -953,7 +1090,7 @@ def prompt(str):
     return inputStr
 
 def debug(str):
-    if CONFIG[CFG_SHOW_DEBUG]==True:
+    if DEBUG==True:
         msg="[DEBUG] %s: %s" % (datetime.now(),str)
         print(msg)
 
@@ -963,10 +1100,7 @@ def printError(str):
 def error(fileOnly=False):
     import traceback
     str=traceback.format_exc()
-    if not fileOnly:
-        print(str)
-    msg="%s: %s" % (datetime.now(),str)
-    appendToFile(ERROR_FILE,[msg])
+    print(str)
 
 def currentTimeMillis():
     return int(round(time.time() * 1000))
@@ -1061,6 +1195,8 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
+        pass
+    except SystemExit:
         pass
     except:
         error()

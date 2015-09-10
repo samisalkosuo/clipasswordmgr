@@ -8,35 +8,12 @@ these may or may not be implemented
 - add passphrase hint
 - add attachments to account (saved into JSON or separately)
 - add curses support
-- add command history
-- add options to copy username, email and others to view-command
 - add view-by-id command/option
 - add --readme option to generate README.md file
-- add option to store old password when changing pwd
-- add more options to password generation, like 'pc' to generate passwords with only characters
 - add option to limit columns in list, like limit email to 10 chars etc.
-- refactor code to make changes easier (such as adding new fields to account)
-- add version number to password file and compare password file version and code version
-- add error messages if prereqs fail (cryptography, pyperclip)
-
-
-- DONE move to python3
-	- because of UTF and future updates
-- DONE add version to python file in order to distiguish versions 
-	- use -DEV for development?
-- DONE add url field to account
-- DONE strip extra spaces in name, and other fields
-- DONE add copy account command 
-- DONE remove JSON file format and use CSV (easier import, export)?
-	- CSV header line has all the fields, used when creating inmemory SQL table
-	- add CSV header line as constant in the code, to be used when creating new accounts etc
-	- need to migrate old accounts that don't have new fields
-- DONE file format is text one encrypted line per account
-	- =>easy to modify?
-- DONE remove configuration files?
-	- use env variables
-- DONE add migrate command
-	- to add new fields in passwords?
-
-
-
+- add multiline comments
+- add encrypt/decrypt commands to en/decrypt accounts: encrypt [account name] [key]
+  (could be used for sharing)
+- add argparse or similar parsing to commands. for example: view --username s --comment df name
+- add note command to add encrypted notes that are no actual accounts/passwords
+- add delete alias
