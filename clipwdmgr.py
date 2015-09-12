@@ -60,7 +60,7 @@ import random
 
 #global variables
 PROGRAMNAME="CLI Password Manager"
-VERSION="0.5"
+VERSION="0.6"
 COPYRIGHT="Copyright (C) 2015 by Sami Salkosuo."
 LICENSE="Licensed under the MIT License."
 
