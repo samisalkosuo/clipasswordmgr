@@ -60,7 +60,7 @@ import random
 
 #global variables
 PROGRAMNAME="CLI Password Manager"
-VERSION="0.5"
+VERSION="0.4"
 COPYRIGHT="Copyright (C) 2015 by Sami Salkosuo."
 LICENSE="Licensed under the MIT License."
 
@@ -311,18 +311,7 @@ def addCommand(inputList):
     URL=prompt ("URL      : ")
     username=prompt ("User name: ")
     email=prompt("Email    : ")
-    
-    #TODO: refactor asking password in here and in modifyCommand
-    print("Password generator is available. Type your password or type 'p'/'ps' to generate password.")
-    pwd=pwgenPassword()
-    pwd=modPrompt("Password ",pwd)
-    while pwd=="p" or pwd=="ps":
-        if pwd=="p":
-            pwd=pwgenPassword()
-        if pwd=="ps":
-            pwd=pwgenPassword(["-sy","12","1"])
-        pwd=modPrompt("Password ",pwd)
-
+    pwd=getPassword()
     comment=prompt ("Comment  : ")
     timestamp=formatTimestamp(currentTimestamp())
 
