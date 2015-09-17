@@ -130,7 +130,6 @@ def parseCommandLineArgs():
     parser.add_argument('-c','--cmd', nargs='*', help='Execute command(s) and exit.')
     parser.add_argument('-f','--file', nargs=1,metavar='FILE', help='Passwords file.')
     parser.add_argument('-d','--decrypt', nargs=1, metavar='STR',help='Decrypt single account string.')
-    parser.add_argument('--migrate', action='store_true', help='Migrate passwords from version 0.3 (this will be removed in a future version).')
     parser.add_argument('-v,--version', action='version', version="%s v%s" % (PROGRAMNAME, VERSION))
     global args
     args = parser.parse_args()
@@ -152,9 +151,6 @@ def main():
     
     debug("command line args: %s" % args)
 
-    if args.migrate:
-        migrate()
-        return
 
     global KEY
     KEY=askPassphrase("Passphrase (CTRL-C to quit): ")
@@ -1125,80 +1121,6 @@ def formatTimestamp(timestamp):
 def boolValue(value):
     string=str(value)
     return string.lower() in ("yes","y","true", "on", "t", "1")
-
-#============================================================================================
-#migrate functions
-#to be removed in future version
-
-def migrate():
-    #migrate from v0.3
-    import configparser
-    homeDir = expanduser("~")
-    CONFIG_FILE=".clipwdmgrcfg"
-    configFile="%s/%s" % (homeDir,CONFIG_FILE)
-    configParser = configparser.RawConfigParser()   
-    configParser.read(r'%s' % configFile)
-    passwordDir=configParser.get('config', 'password.file.dir')
-    passwordFileName=configParser.get('config', 'password.file.name')
-
-    #add version to default file name
-    passwordFileName="%s-0.3.txt" % (passwordFileName)
-    passwordFile="%s/%s" % (passwordDir,passwordFileName)
-    print("v0.3 password file: %s" % passwordFile)
-    key=askMigrateKey("Passphrase for v0.3 password file: ")
-    pwdJSON=loadAccountsOld(key,passwordFile)
-    accounts=[]
-    for a in pwdJSON:
-        account=[]
-        for key in a:
-            value=a[key]
-            if key=="CREATED" or key=="UPDATED":
-                value=formatTimestamp(float(a[key]))
-            if key!="ID":
-                account.append("%s:%s" % (key,value))
-        #Add URL field
-        account.append("URL:")
-        accounts.append(FIELD_DELIM.join(account))
-    #read accounts and store them to new text file, one account per line, all encrypted separately
-    print("New password file: %s" % CLI_PASSWORD_FILE)
-    key=askPassphrase("Passphrase for new password file: ")
-    key2=askPassphrase("Passphrase for new password file (again): ")
-    if key!=key2:
-        printError("Passphrases do not match.")
-        return
-    encryptedAccounts=[]
-    for account in accounts:
-        encryptedAccounts.append(encryptString(key,account))
-        #appendToFile("testfile.txt",[encryptedAccount])
-        #print(encryptedAccount)
-    createNewFile(CLI_PASSWORD_FILE,encryptedAccounts)
-
-def askMigrateKey(str):
-    import getpass
-    passphrase=getpass.getpass(str)
-    if passphrase=="":
-        return None
-    passphrase=hashlib.sha256(passphrase.encode('utf-8')).digest()
-    key=base64.urlsafe_b64encode(passphrase)
-    return key
-
-def loadAccountsOld(key,passwordFile):
-    jsonObj=loadJSONFile(key,passwordFile)
-    #loadMetaConfig(jsonObj)
-    JSON_ACCOUNTS='accounts'
-    accounts=jsonObj[JSON_ACCOUNTS]
-    #populateAccountsTable(accounts)
-    return accounts
-
-def loadJSONFile(key,passwordFile):
-    fernet = Fernet(key)
-    encryptedJSON=readFileAsString(passwordFile)
-    jsonString=fernet.decrypt(encryptedJSON.encode("utf-8"))
-    jsonObj=json.loads(jsonString.decode("utf-8"))
-    return jsonObj
-
-#end migrate functions
-#============================================================================================
 
 if __name__ == "__main__": 
     parseCommandLineArgs()
