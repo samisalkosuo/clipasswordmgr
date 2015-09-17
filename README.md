@@ -25,7 +25,7 @@ Execute clipwdmgr.py and a shell opens. Start by adding new account using 'add' 
 
 Type 'help' to get list of available commands:
 ```
-CLI Password Manager v0.5
+CLI Password Manager v0.6
 Copyright (C) 2015 by Sami Salkosuo.
 Licensed under the MIT License.
 
