@@ -17,7 +17,7 @@ Development/testing has been done using Windows 7 & Cygwin (64bit) and latest OS
 - Use environment variable CLIPWDMGR_FILE to specify path and file of your password
   file.
 - If you have used version 0.3, use --migrate option to migrate accounts to new file
-  (this option is available in v0.4 and v0.5 but will be removed in some future version).
+  (this option was available in v0.4 & v0.5 and t was removed in v0.6).
 
 ## Usage
 
