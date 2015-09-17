@@ -17,7 +17,7 @@ Development/testing has been done using Windows 7 & Cygwin (64bit) and latest OS
 - Use environment variable CLIPWDMGR_FILE to specify path and file of your password
   file.
 - If you have used version 0.3, use --migrate option to migrate accounts to new file
-  (this option is available in v0.4 but will be removed in a future version).
+  (this option is available in v0.4 and v0.5 but will be removed in some future version).
 
 ## Usage
 
@@ -25,7 +25,7 @@ Execute clipwdmgr.py and a shell opens. Start by adding new account using 'add' 
 
 Type 'help' to get list of available commands:
 ```
-CLI Password Manager v0.4
+CLI Password Manager v0.5
 Copyright (C) 2015 by Sami Salkosuo.
 Licensed under the MIT License.
 
@@ -50,3 +50,4 @@ Commands:
    ```
                                                               
 Some words about the origins of CLI Password Manager: http://sami.salkosuo.net/cli-password-manager/
+and other words about v0.4 http://sami.salkosuo.net/cli-password-manager-v0-4/.
