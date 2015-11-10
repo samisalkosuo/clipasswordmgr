@@ -60,7 +60,7 @@ import random
 
 #global variables
 PROGRAMNAME="CLI Password Manager"
-VERSION="0.6"
+VERSION="0.7"
 COPYRIGHT="Copyright (C) 2015 by Sami Salkosuo."
 LICENSE="Licensed under the MIT License."
 
@@ -105,6 +105,7 @@ CFG_MAX_PASSWORD_FILE_BACKUPS="MAX_PASSWORD_FILE_BACKUPS"
 CFG_ALIASES="ALIASES"
 CFG_SAVE_CMD_HISTORY="SAVE_COMMAND_HISTORY"
 CFG_HISTORY="HISTORY"
+CFG_ENABLE_COPY_TO_CLIPBOARD="ENABLE_COPY_TO_CLIPBOARD"
 #defaults
 CONFIG={
     CFG_MASKPASSWORD:True,
@@ -114,6 +115,7 @@ CONFIG={
     CFG_PWGEN_DEFAULT_OPTS_ARGS:"-cns1 12 1",
     CFG_MAX_PASSWORD_FILE_BACKUPS:10,
     CFG_SAVE_CMD_HISTORY:True,
+    CFG_ENABLE_COPY_TO_CLIPBOARD:True,
     CFG_ALIASES:{},
     CFG_HISTORY:[]
     }
@@ -262,8 +264,7 @@ def historyCommand(inputList):
     if(len(inputList)==3):
         arg=inputList[1]
         cmd=history[int(arg)]
-        copyToClipboard(cmd)
-        print("Command: '%s' copied to clipboard." % cmd)
+        copyToClipboard(cmd,infoMessage="Command: '%s' copied to clipboard." % cmd)
 
 def infoCommand(inputList):
     """
@@ -583,11 +584,10 @@ def copyCommand(inputList):
         #printAccountRow(row)
         name=row[COLUMN_NAME]
         f=row[fieldToCopy]
-        copyToClipboard(f)
         if f=="":
             print("%s: %s is empty." % (name,fieldName))
         else:
-            print("%s: %s copied to clipboard." % (name,fieldName))
+            copyToClipboard(f,infoMessage="%s: %s copied to clipboard." % (name,fieldName))
 
 
 def viewCommand(inputList):
@@ -614,8 +614,7 @@ def viewCommand(inputList):
         pwd=row[COLUMN_PASSWORD]
         if CONFIG[CFG_COPY_PASSWORD_ON_VIEW]==True:
             print()
-            copyToClipboard(pwd)
-            print("Password copied to clipboard.")
+            copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
 
 def configCommand(inputList):
     """
@@ -641,7 +640,9 @@ def pwdCommand(inputList):
     pwdlen=12
     if(len(inputList)==2):
         pwdlen=int(inputList[1])
-    print(pwdPassword(pwdlen))
+    pwd=pwdPassword(pwdlen)
+    print(pwd)
+    copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
 
 def pwgenCommand(inputList):
     """
@@ -651,6 +652,7 @@ def pwgenCommand(inputList):
     if pwgenAvailable()==True:
         pwds=pwgenPassword(inputList[1:])
         print(pwds)
+        copyToClipboard(pwds,infoMessage="Password copied to clipboard.")
     else:
         print ("pwgen is not available. No passwords generated.")
 
@@ -936,9 +938,12 @@ def getDocString(commandFunc):
         desc="Not documented."
     return (args,desc)
 
-def copyToClipboard(str):
-    import pyperclip
-    pyperclip.copy(str)
+def copyToClipboard(str,infoMessage=None):
+    if CONFIG[CFG_ENABLE_COPY_TO_CLIPBOARD]==True:
+        import pyperclip
+        pyperclip.copy(str)
+        if infoMessage != None:
+            print(infoMessage)
 
 #============================================================================================
 #encryption/decryption related functions
