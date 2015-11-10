@@ -11,7 +11,11 @@ these may or may not be implemented
 - add view-by-id command/option
 - add --readme option to generate README.md file
 - add option to limit columns in list, like limit email to 10 chars etc.
-- add multiline comments
+- add multiline comments, to add and to edit multiline comments
 - add argparse or similar parsing to commands. for example: view --username s --comment df name
 - add note command to add encrypted notes that are no actual accounts/passwords
 - add delete alias
+- add ID field, to be used to uniquely select accounts
+- add category or tag etc to accounts. category/tag would help to  to view
+  only related to category/tag for example, web hosting account (many accounts
+  related to single hosting like admin, email, users, ftp etc)
