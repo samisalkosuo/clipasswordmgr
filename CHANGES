@@ -1,3 +1,7 @@
+Version 1.0 (14.01.2016)
+
+- Pip distribution.
+
 Version 0.7 (12.10.2015)
 
 - Copy generated password to clipboard when using pwd or pwgen

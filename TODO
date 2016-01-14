@@ -19,3 +19,4 @@ these may or may not be implemented
 - add category or tag etc to accounts. category/tag would help to  to view
   only related to category/tag for example, web hosting account (many accounts
   related to single hosting like admin, email, users, ftp etc)
+- add repeat command that repeats last command

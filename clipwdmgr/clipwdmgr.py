@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 #CLI Password Manager
 #
 #The MIT License (MIT)
 #
-#Copyright (c) 2015 Sami Salkosuo
+#Copyright (c) 2015,2016 Sami Salkosuo
 #
 #Permission is hereby granted, free of charge, to any person obtaining a copy
 #of this software and associated documentation files (the "Software"), to deal
@@ -28,19 +29,21 @@
 #   cryptography https://cryptography.io/en/latest/
 #   pyperclip https://github.com/asweigart/pyperclip
 #
-#Install prereqs using pip (or pip3):
-#  pip3 install cryptography
-#  pip3 install pyperclip
+#
+#Requires packages:
+#  cryptography
+#  pyperclip
 #
 #
 #Some design choices:
 #   developed with Python 3 on Windows 7 & Cygwin-x64 and OS X
-#   only one source file
 #   store password in encrypted text file
-#   use sqlite in-memory to work with accounts
+#   runtime: use sqlite in-memory to work with accounts
 #
 #Some words about the origins of CLI Password Manager: 
 #http://sami.salkosuo.net/cli-password-manager/
+
+__version__="0.9"
 
 from datetime import datetime
 from os.path import expanduser
@@ -60,8 +63,8 @@ import random
 
 #global variables
 PROGRAMNAME="CLI Password Manager"
-VERSION="0.5"
-COPYRIGHT="Copyright (C) 2015 by Sami Salkosuo."
+VERSION=__version__
+COPYRIGHT="Copyright (C) 2015,2016 by Sami Salkosuo."
 LICENSE="Licensed under the MIT License."
 
 PROMPTSTRING="pwdmgr>"
@@ -87,6 +90,9 @@ COLUMN_COMMENT="COMMENT"
 DATABASE_ACCOUNTS_TABLE_COLUMNS=[COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT]
 DATABASE_ACCOUNTS_TABLE_COLUMN_IS_TIMESTAMP=[COLUMN_CREATED,COLUMN_UPDATED]
 
+#this is to display account info 
+COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY=[COLUMN_NAME,COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT]
+
 #environment variable that holds password file path and name
 CLIPWDMGR_FILE="CLIPWDMGR_FILE"
 
@@ -102,6 +108,7 @@ CFG_MAX_PASSWORD_FILE_BACKUPS="MAX_PASSWORD_FILE_BACKUPS"
 CFG_ALIASES="ALIASES"
 CFG_SAVE_CMD_HISTORY="SAVE_COMMAND_HISTORY"
 CFG_HISTORY="HISTORY"
+CFG_ENABLE_COPY_TO_CLIPBOARD="ENABLE_COPY_TO_CLIPBOARD"
 #defaults
 CONFIG={
     CFG_MASKPASSWORD:True,
@@ -111,13 +118,13 @@ CONFIG={
     CFG_PWGEN_DEFAULT_OPTS_ARGS:"-cns1 12 1",
     CFG_MAX_PASSWORD_FILE_BACKUPS:10,
     CFG_SAVE_CMD_HISTORY:True,
+    CFG_ENABLE_COPY_TO_CLIPBOARD:True,
     CFG_ALIASES:{},
     CFG_HISTORY:[]
     }
 
 #configuration stored as json in home dir
 CONFIG_FILE="%s/.clipwdmgr.cfg" % (expanduser("~"))
-
 
 DEBUG=False
 
@@ -130,14 +137,13 @@ def parseCommandLineArgs():
     parser.add_argument('-c','--cmd', nargs='*', help='Execute command(s) and exit.')
     parser.add_argument('-f','--file', nargs=1,metavar='FILE', help='Passwords file.')
     parser.add_argument('-d','--decrypt', nargs=1, metavar='STR',help='Decrypt single account string.')
-    parser.add_argument('--migrate', action='store_true', help='Migrate passwords from version 0.3 (this will be removed in a future version).')
     parser.add_argument('-v,--version', action='version', version="%s v%s" % (PROGRAMNAME, VERSION))
     global args
     args = parser.parse_args()
 
 #============================================================================================
 #main function
-def main():
+def main_clipwdmgr():
     print("%s v%s" % (PROGRAMNAME, VERSION))
     print()
 
@@ -148,13 +154,12 @@ def main():
     if CLI_PASSWORD_FILE==None:
         print("%s environment variable missing." % CLIPWDMGR_FILE)
         print("Use %s environment variable to set path and name of the password file." % CLIPWDMGR_FILE)
+        print()
+        print("For example: Set %s to DROPBOXDIR/clipwdmgr_accounts.txt " % CLIPWDMGR_FILE)
         sys.exit(1) 
     
     debug("command line args: %s" % args)
 
-    if args.migrate:
-        migrate()
-        return
 
     global KEY
     KEY=askPassphrase("Passphrase (CTRL-C to quit): ")
@@ -264,8 +269,7 @@ def historyCommand(inputList):
     if(len(inputList)==3):
         arg=inputList[1]
         cmd=history[int(arg)]
-        copyToClipboard(cmd)
-        print("Command: '%s' copied to clipboard." % cmd)
+        copyToClipboard(cmd,infoMessage="Command: '%s' copied to clipboard." % cmd)
 
 def infoCommand(inputList):
     """
@@ -297,7 +301,7 @@ def addCommand(inputList):
     [<name>]||Add new account.
     """
     debug("entering addCommand")
-    loadAccounts()
+    loadAccounts("add")
     name=None
     if len(inputList)==2:
         name=inputList[1]
@@ -312,7 +316,7 @@ def addCommand(inputList):
     username=prompt ("User name: ")
     email=prompt("Email    : ")
     
-    #TODO: refactor asking password in here and in modifyCommand
+    #TODO: refactor asking password in here and in editCommand
     print("Password generator is available. Type your password or type 'p'/'ps' to generate password.")
     pwd=pwgenPassword()
     pwd=modPrompt("Password ",pwd)
@@ -342,6 +346,40 @@ def addCommand(inputList):
     insertAccountToFile(accountString)
 
     print("Account added.")
+
+
+def encryptCommand(inputList):
+    """
+    <start of name> [passphrase]||Encrypt selected accounts(s).
+    """
+    debug("entering encryptCommand")
+    if verifyArgs(inputList,0,[2,3])==False:
+        return
+    arg=inputList[1]
+    debug("Arg: %s" % arg)
+    loadAccounts()
+    rows=executeSelect(DATABASE_ACCOUNTS_TABLE_COLUMNS,arg)
+    key=KEY
+    if len(inputList)==3:
+        key=createKey(inputList[2])
+    for row in rows:
+        name=row[COLUMN_NAME]
+        print("%s: %s" % (name,encryptAccountRow(row,key)))
+        
+
+def decryptCommand(inputList):
+    """
+    <encrypted string> [passphrase]||Decrypt given string.
+    """
+    debug("entering decryptCommand")
+    if verifyArgs(inputList,0,[2,3])==False:
+        return
+    arg=inputList[1]
+    key=KEY
+    if len(inputList)==3:
+        key=createKey(inputList[2])
+    print(decryptString(key,arg))
+
 
 def selectCommand(inputList):
     """
@@ -396,7 +434,7 @@ def deleteCommand(inputList):
     loadAccounts()
     arg=inputList[1]
     
-    rows=list(executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg))
+    rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg))
     for row in rows:
         printAccountRow(row)
         if boolValue(prompt("Delete this account (yes/no)? ")):
@@ -406,11 +444,11 @@ def deleteCommand(inputList):
             saveAccounts()
             print("Account deleted.")
 
-def modifyCommand(inputList):
+def editCommand(inputList):
     """
-    <start of name>||Modify account(s) that match given string.
+    <start of name>||Edit account(s) that match given string.
     """
-    debug("entering modifyCommand")
+    debug("entering editCommand")
     if verifyArgs(inputList,2)==False:
         return
     loadAccounts()
@@ -418,10 +456,10 @@ def modifyCommand(inputList):
 
     #put results in list so that update cursor doesn't interfere with select cursor when updating account
     #there note about this here: http://apidoc.apsw.googlecode.com/hg/cursor.html
-    rows=list(executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg))
+    rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg))
     for row in rows:
         printAccountRow(row)
-        if boolValue(prompt("Modify this account (yes/no)? ")):
+        if boolValue(prompt("Edit this account (yes/no)? ")):
             values=[]
             name=modPrompt("Name",row[COLUMN_NAME])
             values.append(name)
@@ -551,11 +589,10 @@ def copyCommand(inputList):
         #printAccountRow(row)
         name=row[COLUMN_NAME]
         f=row[fieldToCopy]
-        copyToClipboard(f)
         if f=="":
             print("%s: %s is empty." % (name,fieldName))
         else:
-            print("%s: %s copied to clipboard." % (name,fieldName))
+            copyToClipboard(f,infoMessage="%s: %s copied to clipboard." % (name,fieldName))
 
 
 def viewCommand(inputList):
@@ -576,14 +613,13 @@ def viewCommand(inputList):
             if input.find(fe)>-1:
                 where=where+" and %s like '%%%s%%'" % (field,input.replace(fe,""))
         #has username
-    rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg,whereClause=where)
+    rows=executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg,whereClause=where)
     for row in rows:
         printAccountRow(row)
         pwd=row[COLUMN_PASSWORD]
         if CONFIG[CFG_COPY_PASSWORD_ON_VIEW]==True:
             print()
-            copyToClipboard(pwd)
-            print("Password copied to clipboard.")
+            copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
 
 def configCommand(inputList):
     """
@@ -609,7 +645,9 @@ def pwdCommand(inputList):
     pwdlen=12
     if(len(inputList)==2):
         pwdlen=int(inputList[1])
-    print(pwdPassword(pwdlen))
+    pwd=pwdPassword(pwdlen)
+    print(pwd)
+    copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
 
 def pwgenCommand(inputList):
     """
@@ -619,6 +657,7 @@ def pwgenCommand(inputList):
     if pwgenAvailable()==True:
         pwds=pwgenPassword(inputList[1:])
         print(pwds)
+        copyToClipboard(pwds,infoMessage="Password copied to clipboard.")
     else:
         print ("pwgen is not available. No passwords generated.")
 
@@ -674,16 +713,23 @@ def saveAccounts():
     accounts=[]
     rows=executeSelect(DATABASE_ACCOUNTS_TABLE_COLUMNS,None,None)
     for row in rows:
-        account=[]
-        for columnName in DATABASE_ACCOUNTS_TABLE_COLUMNS:
-            value=row[columnName]
-            if value is not None:
-                value=value.strip()
-            account.append("%s:%s" % (columnName,value))
-        encryptedAccount=encryptString(KEY,FIELD_DELIM.join(account))
+        encryptedAccount=encryptAccountRow(row)
         accounts.append(encryptedAccount)
 
     createNewFile(CLI_PASSWORD_FILE,accounts)
+
+
+def encryptAccountRow(row,key=None):
+    #create string of account and encrypt
+    account=[]
+    for columnName in row.keys():
+        value=row[columnName]
+        if value is not None:
+            value=value.strip()
+        account.append("%s:%s" % (columnName,value))
+    if key==None:
+        key=KEY
+    return encryptString(key,FIELD_DELIM.join(account))
 
 def printAccountRows(rows):
     #print account rows in columns
@@ -727,9 +773,9 @@ def getPassword():
 def printAccountRow(row):
     formatString=getColumnFormatString(2,10,delimiter=" ",align="<")
     print("===============================")# % (name))
-    fields=[COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_COMMENT]
+    #fields=[COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_COMMENT]
 
-    for field in fields:
+    for field in row.keys():#fields:
         value=row[field]
         if field==COLUMN_PASSWORD and CONFIG[CFG_MASKPASSWORD_IN_VIEW]==True:
             value="********"          
@@ -897,9 +943,12 @@ def getDocString(commandFunc):
         desc="Not documented."
     return (args,desc)
 
-def copyToClipboard(str):
-    import pyperclip
-    pyperclip.copy(str)
+def copyToClipboard(str,infoMessage=None):
+    if CONFIG[CFG_ENABLE_COPY_TO_CLIPBOARD]==True:
+        import pyperclip
+        pyperclip.copy(str)
+        if infoMessage != None:
+            print(infoMessage)
 
 #============================================================================================
 #encryption/decryption related functions
@@ -909,9 +958,15 @@ def askPassphrase(str):
     passphrase=getpass.getpass(str)
     if passphrase=="":
         return None
-    passphrase=hashlib.sha256(passphrase.encode('utf-8')).digest()
-    passphrase=base64.urlsafe_b64encode(passphrase)
-    return passphrase
+    key=createKey(passphrase)
+    #passphrase=hashlib.sha256(passphrase.encode('utf-8')).digest()
+    #passphrase=base64.urlsafe_b64encode(passphrase)
+    return key
+
+def createKey(str):
+    key=hashlib.sha256(str.encode('utf-8')).digest()
+    key=base64.urlsafe_b64encode(key)
+    return key
 
 def encryptString(key,str):
     if str==None or str=="":
@@ -1007,9 +1062,10 @@ def insertAccountToFile(accountString):
     appendStringToFile(CLI_PASSWORD_FILE,encryptedAccount)
 
 #import accounts to database
-def loadAccounts():
+def loadAccounts(cmd=None):
     if os.path.isfile(CLI_PASSWORD_FILE) == False:
-        print("No accounts. Add accounts using add-command.")
+        if cmd is not "add":
+            print("No accounts. Add accounts using add-command.")
         return
 
     accounts=readFileAsList(CLI_PASSWORD_FILE)
@@ -1126,85 +1182,11 @@ def boolValue(value):
     string=str(value)
     return string.lower() in ("yes","y","true", "on", "t", "1")
 
-#============================================================================================
-#migrate functions
-#to be removed in future version
-
-def migrate():
-    #migrate from v0.3
-    import configparser
-    homeDir = expanduser("~")
-    CONFIG_FILE=".clipwdmgrcfg"
-    configFile="%s/%s" % (homeDir,CONFIG_FILE)
-    configParser = configparser.RawConfigParser()   
-    configParser.read(r'%s' % configFile)
-    passwordDir=configParser.get('config', 'password.file.dir')
-    passwordFileName=configParser.get('config', 'password.file.name')
-
-    #add version to default file name
-    passwordFileName="%s-0.3.txt" % (passwordFileName)
-    passwordFile="%s/%s" % (passwordDir,passwordFileName)
-    print("v0.3 password file: %s" % passwordFile)
-    key=askMigrateKey("Passphrase for v0.3 password file: ")
-    pwdJSON=loadAccountsOld(key,passwordFile)
-    accounts=[]
-    for a in pwdJSON:
-        account=[]
-        for key in a:
-            value=a[key]
-            if key=="CREATED" or key=="UPDATED":
-                value=formatTimestamp(float(a[key]))
-            if key!="ID":
-                account.append("%s:%s" % (key,value))
-        #Add URL field
-        account.append("URL:")
-        accounts.append(FIELD_DELIM.join(account))
-    #read accounts and store them to new text file, one account per line, all encrypted separately
-    print("New password file: %s" % CLI_PASSWORD_FILE)
-    key=askPassphrase("Passphrase for new password file: ")
-    key2=askPassphrase("Passphrase for new password file (again): ")
-    if key!=key2:
-        printError("Passphrases do not match.")
-        return
-    encryptedAccounts=[]
-    for account in accounts:
-        encryptedAccounts.append(encryptString(key,account))
-        #appendToFile("testfile.txt",[encryptedAccount])
-        #print(encryptedAccount)
-    createNewFile(CLI_PASSWORD_FILE,encryptedAccounts)
-
-def askMigrateKey(str):
-    import getpass
-    passphrase=getpass.getpass(str)
-    if passphrase=="":
-        return None
-    passphrase=hashlib.sha256(passphrase.encode('utf-8')).digest()
-    key=base64.urlsafe_b64encode(passphrase)
-    return key
-
-def loadAccountsOld(key,passwordFile):
-    jsonObj=loadJSONFile(key,passwordFile)
-    #loadMetaConfig(jsonObj)
-    JSON_ACCOUNTS='accounts'
-    accounts=jsonObj[JSON_ACCOUNTS]
-    #populateAccountsTable(accounts)
-    return accounts
-
-def loadJSONFile(key,passwordFile):
-    fernet = Fernet(key)
-    encryptedJSON=readFileAsString(passwordFile)
-    jsonString=fernet.decrypt(encryptedJSON.encode("utf-8"))
-    jsonObj=json.loads(jsonString.decode("utf-8"))
-    return jsonObj
-
-#end migrate functions
-#============================================================================================
-
-if __name__ == "__main__": 
+def main():
     parseCommandLineArgs()
     debug("START")
     try:
-        main()
+        main_clipwdmgr()
     except KeyboardInterrupt:
         pass
     except SystemExit:
@@ -1212,3 +1194,7 @@ if __name__ == "__main__":
     except:
         error()
     debug("END")
+
+
+if __name__ == "__main__": 
+    main()
