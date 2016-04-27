@@ -20,3 +20,10 @@ these may or may not be implemented
   only related to category/tag for example, web hosting account (many accounts
   related to single hosting like admin, email, users, ftp etc)
 - add repeat command that repeats last command
+- add possibility to hide accounts, no delete but only hide from UI
+- add command to view encrypted text string
+- add option to send encrypted text string via email, etc
+- command suite style application instead of shell. keep encryption pwd in memory?
+- view command to accept any string in account name not just starting with
+
+
