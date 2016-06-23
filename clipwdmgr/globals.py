@@ -34,10 +34,6 @@ KEY=None
 
 FIELD_DELIM="|||::|||"
 
-#sqlite database
-DATABASE=None
-#sqlite database cursor
-DATABASE_CURSOR=None
 #columns for ACCOUNTS table and also fields in account string
 COLUMN_NAME="NAME"
 #CREATED column uniquely identifies account, highly unlikely that two accounts are created at the same time :-)
