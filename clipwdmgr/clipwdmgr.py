@@ -45,12 +45,9 @@
 
 __version__="0.10"
 
-from cryptography.fernet import Fernet
 import sys
 import os
 import json
-import hashlib
-import base64
 import shutil
 import sqlite3
 import shlex
@@ -60,6 +57,7 @@ import random
 
 from .globals import *
 from .common import *
+from .crypto import *
 
 #command line args
 args=None
@@ -884,36 +882,6 @@ def copyToClipboard(str,infoMessage=None):
             print(infoMessage)
 
 #============================================================================================
-#encryption/decryption related functions
-
-def askPassphrase(str):
-    import getpass
-    passphrase=getpass.getpass(str)
-    if passphrase=="":
-        return None
-    key=createKey(passphrase)
-    #passphrase=hashlib.sha256(passphrase.encode('utf-8')).digest()
-    #passphrase=base64.urlsafe_b64encode(passphrase)
-    return key
-
-def createKey(str):
-    key=hashlib.sha256(str.encode('utf-8')).digest()
-    key=base64.urlsafe_b64encode(key)
-    return key
-
-def encryptString(key,str):
-    if str==None or str=="":
-        return
-    fernet = Fernet(key)
-    encryptedString = fernet.encrypt(str.encode("utf-8"))
-    return encryptedString.decode("utf-8")
-
-def decryptString(key,str):
-    if str==None or str=="":
-        return
-    fernet = Fernet(key)
-    decryptedString = fernet.decrypt(str.encode("utf-8"))
-    return decryptedString.decode("utf-8")
 
 
 #============================================================================================
