@@ -43,10 +43,9 @@
 #Some words about the origins of CLI Password Manager: 
 #http://sami.salkosuo.net/cli-password-manager/
 
-__version__="0.9"
+__version__="0.10"
 
 from datetime import datetime
-from os.path import expanduser
 from cryptography.fernet import Fernet
 import sys
 import os
@@ -61,72 +60,7 @@ import argparse
 import subprocess
 import random
 
-#global variables
-PROGRAMNAME="CLI Password Manager"
-VERSION=__version__
-COPYRIGHT="Copyright (C) 2015,2016 by Sami Salkosuo."
-LICENSE="Licensed under the MIT License."
-
-PROMPTSTRING="pwdmgr>"
-
-KEY=None
-
-FIELD_DELIM="|||::|||"
-
-#sqlite database
-DATABASE=None
-#sqlite database cursor
-DATABASE_CURSOR=None
-#columns for ACCOUNTS table and also fields in account string
-COLUMN_NAME="NAME"
-#CREATED column uniquely identifies account, highly unlikely that two accounts are created at the same time :-)
-COLUMN_CREATED="CREATED"
-COLUMN_UPDATED="UPDATED"
-COLUMN_USERNAME="USERNAME"
-COLUMN_URL="URL"
-COLUMN_EMAIL="EMAIL"
-COLUMN_PASSWORD="PASSWORD"
-COLUMN_COMMENT="COMMENT"
-DATABASE_ACCOUNTS_TABLE_COLUMNS=[COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT]
-DATABASE_ACCOUNTS_TABLE_COLUMN_IS_TIMESTAMP=[COLUMN_CREATED,COLUMN_UPDATED]
-
-#this is to display account info 
-COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY=[COLUMN_NAME,COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT]
-
-#environment variable that holds password file path and name
-CLIPWDMGR_FILE="CLIPWDMGR_FILE"
-
-CLI_PASSWORD_FILE=os.environ.get(CLIPWDMGR_FILE)
-
-#configuration
-CFG_MASKPASSWORD="MASKPASSWORD"
-CFG_COLUMN_LENGTH="COLUMN_LENGTH"
-CFG_COPY_PASSWORD_ON_VIEW="COPY_PASSWORD_ON_VIEW"
-CFG_MASKPASSWORD_IN_VIEW="MASKPASSWORD_IN_VIEW"
-CFG_PWGEN_DEFAULT_OPTS_ARGS="PWGEN_DEFAULT_OPTS_ARGS"
-CFG_MAX_PASSWORD_FILE_BACKUPS="MAX_PASSWORD_FILE_BACKUPS"
-CFG_ALIASES="ALIASES"
-CFG_SAVE_CMD_HISTORY="SAVE_COMMAND_HISTORY"
-CFG_HISTORY="HISTORY"
-CFG_ENABLE_COPY_TO_CLIPBOARD="ENABLE_COPY_TO_CLIPBOARD"
-#defaults
-CONFIG={
-    CFG_MASKPASSWORD:True,
-    CFG_COPY_PASSWORD_ON_VIEW:True,
-    CFG_MASKPASSWORD_IN_VIEW:False,
-    CFG_COLUMN_LENGTH:10,
-    CFG_PWGEN_DEFAULT_OPTS_ARGS:"-cns1 12 1",
-    CFG_MAX_PASSWORD_FILE_BACKUPS:10,
-    CFG_SAVE_CMD_HISTORY:True,
-    CFG_ENABLE_COPY_TO_CLIPBOARD:True,
-    CFG_ALIASES:{},
-    CFG_HISTORY:[]
-    }
-
-#configuration stored as json in home dir
-CONFIG_FILE="%s/.clipwdmgr.cfg" % (expanduser("~"))
-
-DEBUG=False
+from .globals import *
 
 #command line args
 args=None
@@ -137,14 +71,14 @@ def parseCommandLineArgs():
     parser.add_argument('-c','--cmd', nargs='*', help='Execute command(s) and exit.')
     parser.add_argument('-f','--file', nargs=1,metavar='FILE', help='Passwords file.')
     parser.add_argument('-d','--decrypt', nargs=1, metavar='STR',help='Decrypt single account string.')
-    parser.add_argument('-v,--version', action='version', version="%s v%s" % (PROGRAMNAME, VERSION))
+    parser.add_argument('-v,--version', action='version', version="%s v%s" % (PROGRAMNAME, __version__))
     global args
     args = parser.parse_args()
 
 #============================================================================================
 #main function
 def main_clipwdmgr():
-    print("%s v%s" % (PROGRAMNAME, VERSION))
+    print("%s v%s" % (PROGRAMNAME, __version__))
     print()
 
     if args.file:
@@ -902,7 +836,7 @@ def pwdPassword(length=12):
     return "".join(pwd)
 
 def versionInfo():
-    print("%s v%s" % (PROGRAMNAME, VERSION))
+    print("%s v%s" % (PROGRAMNAME, __version__))
     print(COPYRIGHT)
     print(LICENSE)
 
@@ -915,12 +849,12 @@ def createPasswordFileBackups():
         currentBackup=maxBackups
         filenameTemplate="%s-v%s-%d"
         while currentBackup>0:
-            backupFile= filenameTemplate % (passwordFile,VERSION,currentBackup)
+            backupFile= filenameTemplate % (passwordFile,__version__,currentBackup)
             if os.path.isfile(backupFile) == True:
-                shutil.copy2(backupFile, filenameTemplate % (passwordFile,VERSION,currentBackup+1))
+                shutil.copy2(backupFile, filenameTemplate % (passwordFile,__version__,currentBackup+1))
             debug("Backup file: %s" % backupFile)
             currentBackup=currentBackup-1
-        shutil.copy2(passwordFile, filenameTemplate % (passwordFile,VERSION,1))
+        shutil.copy2(passwordFile, filenameTemplate % (passwordFile,__version__,1))
     except:
         printError("Password file back up failed.")
         error(fileOnly=True)
