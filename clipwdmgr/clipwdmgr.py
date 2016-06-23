@@ -49,7 +49,6 @@ import sys
 import os
 import json
 import shutil
-import sqlite3
 import shlex
 import argparse
 import subprocess
@@ -58,6 +57,7 @@ import random
 from .globals import *
 from .common import *
 from .crypto import *
+from .database import *
 
 #command line args
 args=None
@@ -212,10 +212,10 @@ def infoCommand(inputList):
     print(formatString.format("CLI_PASSWORD_FILE",CLI_PASSWORD_FILE))
     print(formatString.format("Password file size",sizeof_fmt(size)))
 
-    loadAccounts()
-    totalAccounts=(DATABASE_CURSOR.execute("select count(*) from accounts").fetchone()[0])
+    loadAccounts(KEY)
+    totalAccounts=selectFirst("select count(*) from accounts")
     print(formatString.format("Total accounts",str(totalAccounts)))
-    lastUpdated=(DATABASE_CURSOR.execute("select updated from accounts order by updated desc").fetchone()[0])
+    lastUpdated=selectFirst("select updated from accounts order by updated desc")
     print(formatString.format("Last updated",lastUpdated))
     
     print(formatString.format("Config file",CONFIG_FILE))
@@ -232,7 +232,7 @@ def addCommand(inputList):
     [<name>]||Add new account.
     """
     debug("entering addCommand")
-    loadAccounts("add")
+    loadAccounts(KEY,"add")
     name=None
     if len(inputList)==2:
         name=inputList[1]
@@ -274,7 +274,7 @@ def addCommand(inputList):
     debug(accountString)
 
     createPasswordFileBackups()
-    insertAccountToFile(accountString)
+    insertAccountToFile(KEY,accountString)
 
     print("Account added.")
 
@@ -288,7 +288,7 @@ def encryptCommand(inputList):
         return
     arg=inputList[1]
     debug("Arg: %s" % arg)
-    loadAccounts()
+    loadAccounts(KEY)
     rows=executeSelect(DATABASE_ACCOUNTS_TABLE_COLUMNS,arg)
     key=KEY
     if len(inputList)==3:
@@ -323,10 +323,9 @@ def selectCommand(inputList):
         print(formatString.format("Table","ACCOUNTS"))
         print(formatString.format("Columns",",".join(DATABASE_ACCOUNTS_TABLE_COLUMNS)))
     else:
-        loadAccounts()
+        loadAccounts(KEY)
         sql=" ".join(inputList)
-        rows=DATABASE_CURSOR.execute(sql)
-        columns=DATABASE_CURSOR.description
+        (rows,columns)=executeSql(sql)
         columnNames=[]
         for c in columns:
             columnNames.append(c[0])
@@ -347,7 +346,7 @@ def listCommand(inputList):
     """
     [<start of name>]||Print all accounts or all that match given start of name.
     """
-    loadAccounts()
+    loadAccounts(KEY)
     arg=""
     if(len(inputList)==2):
         arg=inputList[1]
@@ -362,7 +361,7 @@ def deleteCommand(inputList):
     debug("entering deleteCommand")
     if verifyArgs(inputList,2)==False:
         return
-    loadAccounts()
+    loadAccounts(KEY)
     arg=inputList[1]
     
     rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg))
@@ -370,8 +369,7 @@ def deleteCommand(inputList):
         printAccountRow(row)
         if boolValue(prompt("Delete this account (yes/no)? ")):
             sql="delete from accounts where %s=?" % (COLUMN_CREATED)
-            DATABASE_CURSOR.execute(sql,(row[COLUMN_CREATED],))
-            DATABASE.commit()
+            executeDelete(sql,(row[COLUMN_CREATED],))
             saveAccounts()
             print("Account deleted.")
 
@@ -382,7 +380,7 @@ def editCommand(inputList):
     debug("entering editCommand")
     if verifyArgs(inputList,2)==False:
         return
-    loadAccounts()
+    loadAccounts(KEY)
     arg=inputList[1]
 
     #put results in list so that update cursor doesn't interfere with select cursor when updating account
@@ -437,8 +435,7 @@ def editCommand(inputList):
                 COLUMN_UPDATED,
                 COLUMN_CREATED
                 )
-            DATABASE_CURSOR.execute(sql,tuple(values))
-            DATABASE.commit()
+            executeSql(sql,tuple(values),commit=True)
             saveAccounts()
             print("Account updated.")
 
@@ -456,8 +453,8 @@ def changepassphraseCommand(inputList):
         print("Passphrases do not match.")
         return
 
-    loadAccounts()
     global KEY
+    loadAccounts(KEY)
     KEY=newKey
     saveAccounts()
     print ("Passphrase changed.")
@@ -469,7 +466,7 @@ def searchCommand(inputList):
     debug("entering searchCommand")
     if verifyArgs(inputList,2)==False:
         return
-    loadAccounts()
+    loadAccounts(KEY)
     arg=inputList[1]
     where=""
     if arg.startswith("username="):
@@ -512,7 +509,7 @@ def copyCommand(inputList):
             fieldToCopy=COLUMN_COMMENT
             fieldName="Comment"
 
-    loadAccounts()
+    loadAccounts(KEY)
     arg=inputList[1]
 
     rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
@@ -534,7 +531,7 @@ def viewCommand(inputList):
     if verifyArgs(inputList,0,[2,3,4])==False:
         return
 
-    loadAccounts()
+    loadAccounts(KEY)
     arg=inputList[1]
     where="where name like \"%s%%\"" % arg
     for input in inputList[2:]:
@@ -880,113 +877,6 @@ def copyToClipboard(str,infoMessage=None):
         pyperclip.copy(str)
         if infoMessage != None:
             print(infoMessage)
-
-#============================================================================================
-
-
-#============================================================================================
-#database functions
-def openDatabase():
-    global DATABASE
-    global DATABASE_CURSOR
-    DATABASE=sqlite3.connect(':memory:')
-    DATABASE.row_factory = sqlite3.Row
-    DATABASE_CURSOR=DATABASE.cursor()
-    sql=[]
-    sql.append("CREATE TABLE accounts ")
-    sql.append("(")
-    for column in DATABASE_ACCOUNTS_TABLE_COLUMNS:
-        sql.append(" ")
-        sql.append(column)
-        sql.append(" TEXT ")
-        if column in DATABASE_ACCOUNTS_TABLE_COLUMN_IS_TIMESTAMP:
-            sql.append(" DEFAULT CURRENT_TIMESTAMP ")
-        else:
-            sql.append(" DEFAULT '' ")
-        sql.append(",")
-    sql=sql[:-1]
-    sql.append(")")
-    sql="".join(sql)
-    debug("Create SQL: %s " %sql)
-    DATABASE_CURSOR.execute(sql)
-
-def closeDatabase():
-    global DATABASE
-    global DATABASE_CURSOR
-    if DATABASE is not None:
-        DATABASE.close()
-    DATABASE=None
-    DATABASE_CURSOR=None
-
-def executeSelect(listOfColumnNames,whereNameStartsWith=None,whereClause=None,orderBy=COLUMN_NAME,returnSQLOnly=False):
-    where=""
-    if whereNameStartsWith is not None:
-        where="where name like \"%s%%\"" % whereNameStartsWith
-    if whereClause is not None:
-        where=whereClause
-    cols=",".join(listOfColumnNames)
-    orderClause=""
-    if orderBy is not None:
-        orderClause="order by %s" % orderBy
-    sql="select %s from accounts %s %s" % (cols,where,orderClause)
-    debug("executeSelect SQL: %s" % sql)
-    if returnSQLOnly==True:
-        return sql
-    else:
-        return DATABASE_CURSOR.execute(sql)
-
-def insertAccountToDB(accountString):
-    accountDict=accountStringToDict(accountString)
-    columnNames=[]
-    values=[]
-    qmarks=[]
-    for key in accountDict.keys():            
-        value=accountDict[key]
-        if value is not "":
-            columnNames.append(key)
-            values.append(value)
-            qmarks.append("?")
-    sql=[]
-
-    sql.append("insert into accounts (")
-    sql.append(",".join(columnNames))
-    sql.append(") values (")
-    sql.append(",".join(qmarks))
-    sql.append(")")
-    sql="".join(sql)
-    #debug("SQL: %s" % sql)
-    #debug(tuple(values))
-    DATABASE_CURSOR.execute(sql,values)
-
-def insertAccountToFile(accountString):
-    encryptedAccount=encryptString(KEY,accountString)
-    appendStringToFile(CLI_PASSWORD_FILE,encryptedAccount)
-
-#import accounts to database
-def loadAccounts(cmd=None):
-    if os.path.isfile(CLI_PASSWORD_FILE) == False:
-        if cmd is not "add":
-            print("No accounts. Add accounts using add-command.")
-        return
-
-    accounts=readFileAsList(CLI_PASSWORD_FILE)
-    for account in accounts:
-        if account==None or account=="":
-            continue
-        decryptedAccount=decryptString(KEY,account)
-        insertAccountToDB(decryptedAccount)
-
-def accountStringToDict(str):
-    account=str.split(FIELD_DELIM)
-    accountDict=dict()
-    for field in account:
-        ind=field.find(":")
-        name=field[0:ind]
-        value=field[ind+1:]
-        accountDict[name]=value
-        #print("%s == %s" % (name,value))
-    return accountDict
-
 
 
 #============================================================================================
