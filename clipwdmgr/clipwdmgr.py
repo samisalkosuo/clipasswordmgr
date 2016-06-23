@@ -244,21 +244,11 @@ def addCommand(inputList):
             print("Empty name not accepted")
             name=prompt ("Name     : ")
     URL=prompt ("URL      : ")
-    username=prompt ("User name: ")
+    username=askAccountUsername("User name")
     email=prompt("Email    : ")
-    
-    #TODO: refactor asking password in here and in editCommand
-    print("Password generator is available. Type your password or type 'p'/'ps' to generate password.")
-    pwd=pwgenPassword()
-    pwd=modPrompt("Password ",pwd)
-    while pwd=="p" or pwd=="ps":
-        if pwd=="p":
-            pwd=pwgenPassword()
-        if pwd=="ps":
-            pwd=pwgenPassword(["-sy","12","1"])
-        pwd=modPrompt("Password ",pwd)
-
+    pwd=askAccountPassword("Password ","Password generator is available. Type your password or type 'p'/'ps' to generate password.")
     comment=prompt ("Comment  : ")
+
     timestamp=formatTimestamp(currentTimestamp())
 
     newAccount=dict()
@@ -396,24 +386,17 @@ def editCommand(inputList):
             URL=modPrompt("URL",row[COLUMN_URL])
             values.append(URL)
 
-            username=modPrompt("User name",row[COLUMN_USERNAME])
+            oldUserName=row[COLUMN_USERNAME]
+            promptStr="User name OLD: (%s) NEW" % oldUserName 
+            username=askAccountUsername(promptStr,oldUserName)
             values.append(username)
 
             email=modPrompt("Email",row[COLUMN_EMAIL])
             values.append(email)
 
-            #if pwgenAvailable()==True:
-            print("Password generator is available. Type your password or type 'p'/'ps' to generate password or 'c' to use original password.")
-            originalPassword=row[COLUMN_PASSWORD]
-            pwd=modPrompt("Password OLD: (%s) NEW:" % (originalPassword),originalPassword)
-            while pwd=="p" or pwd=="ps" or pwd=="c":
-                if pwd=="p":
-                    pwd=pwgenPassword()
-                if pwd=="ps":
-                    pwd=pwgenPassword(["-sy","12","1"])
-                if pwd=="c":
-                    pwd=originalPassword
-                pwd=modPrompt("Password OLD: (%s) NEW:" % (originalPassword),pwd)
+            originalPassword=row[COLUMN_PASSWORD]            
+            pwd=askAccountPassword("Password OLD: (%s) NEW:" % (originalPassword),"Password generator is available. Type your password or type 'p'/'ps' to generate password or 'c' to use original password.",originalPassword)
+
             values.append(pwd)
 
             comment=modPrompt("Comment",row[COLUMN_COMMENT])
@@ -743,14 +726,6 @@ def verifyArgs(inputList,numberOfArgs,listOfAllowedNumberOfArgs=None):
         return False
     return True
 
-def modPrompt(field,defaultValue):
-    n=prompt("%s (%s): " % (field,defaultValue))
-    if n=="":
-        n=defaultValue
-    else:
-        n=n.strip()
-    return n
-
 def loadConfig():
     #load config to sqlite database, if db not exists load defaults
     #if exists, set CONFIG dict from values in db
@@ -797,6 +772,41 @@ def configSet(key,value):
         value=boolValue(value)
     CONFIG[key]=value
     saveConfig()
+
+def askAccountUsername(promptStr,defaultValue=None):
+
+    print("User name generator is available. Type your username or type 'u' to generate username.")
+    username=""
+    if defaultValue!=None:
+        username=defaultValue
+    username=modPrompt (promptStr,username)
+    while username=="u"  or username.startswith("C") or username.startswith("V"):
+        if username=="u":
+            username=generate_username("CVC-CVC",False)
+        else:
+            username=generate_username(username,False)
+        username=modPrompt (promptStr,username)
+    return username
+
+def askAccountPassword(promptStr,infoText,defaultValue=None):
+    print(infoText)
+    if defaultValue==None:
+        pwd=pwgenPassword()
+    else:
+        pwd=defaultValue
+    pwd=modPrompt(promptStr,pwd)
+
+    while pwd=="p" or pwd=="ps":
+        if pwd=="p":
+            pwd=pwgenPassword()
+        if pwd=="ps":
+            pwd=pwgenPassword(["-sy","12","1"])
+        pwd=modPrompt(promptStr,pwd)
+
+    if pwd=='c':
+        return defaultValue
+
+    return pwd
 
 def pwgenAvailable():
     try:

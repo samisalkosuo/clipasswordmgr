@@ -117,3 +117,47 @@ def formatTimestamp(timestamp):
 def boolValue(value):
     string=str(value)
     return string.lower() in ("yes","y","true", "on", "t", "1")
+
+def modPrompt(field,defaultValue=None):
+    promptStr=""
+    if defaultValue==None:
+      promptStr="%s: " % (field)
+    else:
+      promptStr="%s (%s): " % (field,defaultValue)
+    n=prompt(promptStr)
+    if n=="":
+        n=defaultValue
+    else:
+        n=n.strip()
+    return n
+
+def generate_username(formatStr,capitalize=True):
+    """Generate random user name. formatStr is like CVC-CVC which generates username with consonant-vowel-consonant-consonant-vowel-consonant"""
+    import random
+    import re
+
+    vowels="eyuioa"
+    consonants="mnbvcxzlkjhgfdsptrwq"
+
+    def randomVowel():
+        return random.choice(vowels)
+
+    def randomConsonant():
+        return random.choice(consonants)
+
+    regex = re.compile('[^a-zA-Z+]')
+    formatStr=regex.sub('', format)
+    username=[]
+    for c in formatStr.upper():
+        if c=="C":
+            username.append(randomConsonant())
+        if c=="V":
+            username.append(randomVowel())
+        if c=="+":
+            username.append(" ")
+    username="".join(username)
+    if capitalize==True:
+        username= username.capitalize()
+
+    return username
+
