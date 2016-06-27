@@ -146,7 +146,7 @@ def generate_username(formatStr,capitalize=True):
         return random.choice(consonants)
 
     regex = re.compile('[^a-zA-Z+]')
-    formatStr=regex.sub('', format)
+    formatStr=regex.sub('', formatStr)
     username=[]
     for c in formatStr.upper():
         if c=="C":
