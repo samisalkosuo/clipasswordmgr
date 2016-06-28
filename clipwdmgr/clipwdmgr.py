@@ -145,6 +145,7 @@ def callCmd(userInput):
     function = globals().get(functionName)
     if not function:
         #check alias
+        cmd=inputList[0]
         aliases=CONFIG[CFG_ALIASES]
         if cmd in aliases.keys():
             newCmd="%s %s" % (aliases[cmd]," ".join(inputList[1:]))
@@ -152,7 +153,7 @@ def callCmd(userInput):
         else:
             print("%s not implemented." % cmd)
     else:
-        #TODO: save to command history
+        #save to command history
         if userInput.find("history")==-1 and CONFIG[CFG_SAVE_CMD_HISTORY]==True:
             history=CONFIG[CFG_HISTORY]
             history.append(userInput)
@@ -180,7 +181,7 @@ def aliasCommand(inputList):
 
 def historyCommand(inputList):
     """
-    [<index> [c] | clear]||View history, execute command or clear entire history. 'c' after index copies command to clipboard.
+    [last | <index> [c] | clear]||View history, execute command or clear entire history. 'last' executes last command. 'c' after index copies command to clipboard.
     """
     history=CONFIG[CFG_HISTORY]
     if(len(inputList)==1):
@@ -195,8 +196,14 @@ def historyCommand(inputList):
             CONFIG[CFG_HISTORY]=[]
             saveConfig()
         else:
-            cmd=history[int(arg)]
-            callCmd(cmd)
+            if arg=="last":
+                #repeat last command
+                cmd=history[-1]
+                if cmd!="repeat":
+                    callCmd(cmd)
+            else:
+                cmd=history[int(arg)]
+                callCmd(cmd)
     if(len(inputList)==3):
         arg=inputList[1]
         cmd=history[int(arg)]
@@ -571,6 +578,21 @@ def pwgenCommand(inputList):
         copyToClipboard(pwds,infoMessage="Password copied to clipboard.")
     else:
         print ("pwgen is not available. No passwords generated.")
+
+def unameCommand(inputList):
+    """
+    [<format>]||Generate random username using given format. Format is string of C=consonants and V=vowels. Default format is CVCCVC.
+    """
+    formatStr="CVCCVC"
+    if(len(inputList)==2):
+        formatStr=inputList[1]
+    #TODO: generate givn number of usernames
+    N=1
+    for i in range(N):
+        pwd=generate_username(formatStr,False)
+        print(pwd)
+    #copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
+
 
 def exitCommand(inputList):
     """||Exit program."""

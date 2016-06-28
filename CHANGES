@@ -1,7 +1,9 @@
-Version 0.10 (23.06.2016)
+Version 0.10 (28.06.2016)
 
 - Refactoring.
 - Added random user name generator.
+- Added 'last' to history-command to execute last command.
+- Added uname-command to generate random usernames.
 
 Version 0.9 (14.01.2016)
 
