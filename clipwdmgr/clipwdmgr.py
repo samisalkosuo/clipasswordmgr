@@ -903,13 +903,19 @@ def getDocString(commandFunc):
         desc="Not documented."
     return (args,desc)
 
-def copyToClipboard(str,infoMessage=None):
+def copyToClipboard(stringToCopy,infoMessage=None):
     if CONFIG[CFG_ENABLE_COPY_TO_CLIPBOARD]==True:
-        import pyperclip
-        pyperclip.copy(str)
-        if infoMessage != None:
-            print(infoMessage)
-
+        cygwinClipboard="/dev/clipboard"
+        if os.path.exists(cygwinClipboard):
+            clipboardDevice = open(cygwinClipboard, "w")
+            clipboardDevice.write(stringToCopy)
+            if infoMessage != None:
+                print(infoMessage)
+        else:
+            import pyperclip
+            pyperclip.copy(stringToCopy)
+            if infoMessage != None:
+                print(infoMessage)
 
 #============================================================================================
 #main
