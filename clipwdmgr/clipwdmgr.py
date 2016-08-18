@@ -216,6 +216,7 @@ def infoCommand(inputList):
 
     size=os.path.getsize(CLI_PASSWORD_FILE)
     formatString=getColumnFormatString(2,25,delimiter=": ",align="<")
+    print(formatString.format("Version",__version__))
     print(formatString.format("CLI_PASSWORD_FILE",CLI_PASSWORD_FILE))
     print(formatString.format("Password file size",sizeof_fmt(size)))
 

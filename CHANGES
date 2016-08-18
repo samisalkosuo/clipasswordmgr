@@ -1,4 +1,4 @@
-Version 0.10 (11.07.2016)
+Version 0.10 (18.08.2016)
 
 - Refactoring.
 - Added random user name generator.
@@ -6,6 +6,7 @@ Version 0.10 (11.07.2016)
 - Added uname-command to generate random usernames.
 - Uses /dev/clipboard (if available, otherwise uses pyperclip)
   to copy strings to clipboard.
+- Added version info to info-command.
 
 Version 0.9 (14.01.2016)
 
