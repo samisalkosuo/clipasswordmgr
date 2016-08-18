@@ -25,5 +25,7 @@ these may or may not be implemented
 - add option to send encrypted text string via email, etc
 - command suite style application instead of shell. keep encryption pwd in memory?
 - view command to accept any string in account name not just starting with
-
+- when changing passwords, save previous ones too
+- save comment history
+- add MQTT publish/subscribe in order to send/receive encrypted accounts to others
 
