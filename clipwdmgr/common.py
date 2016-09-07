@@ -138,6 +138,10 @@ def generate_username(formatStr,capitalize=True):
 
     vowels="eyuioa"
     consonants="mnbvcxzlkjhgfdsptrwq"
+    numbers="0123456789"
+
+    def randomNumber():
+        return random.choice(numbers)
 
     def randomVowel():
         return random.choice(vowels)
@@ -153,6 +157,8 @@ def generate_username(formatStr,capitalize=True):
             username.append(randomConsonant())
         if c=="V":
             username.append(randomVowel())
+        if c=="N":
+            username.append(randomNumber())
         if c=="+":
             username.append(" ")
     username="".join(username)

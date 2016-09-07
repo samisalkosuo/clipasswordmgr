@@ -1,4 +1,4 @@
-Version 0.10 (18.08.2016)
+Version 0.10 (07.09.2016)
 
 - Refactoring.
 - Added random user name generator.
@@ -7,6 +7,7 @@ Version 0.10 (18.08.2016)
 - Uses /dev/clipboard (if available, otherwise uses pyperclip)
   to copy strings to clipboard.
 - Added version info to info-command.
+- Added N=number to username format.
 
 Version 0.9 (14.01.2016)
 

@@ -582,7 +582,7 @@ def pwgenCommand(inputList):
 
 def unameCommand(inputList):
     """
-    [<format>]||Generate random username using given format. Format is string of C=consonants and V=vowels. Default format is CVCCVC.
+    [<format>]||Generate random username using given format. Format is string of C=consonants, V=vowels and N=numbers. Default format is CVCCVC.
     """
     formatStr="CVCCVC"
     if(len(inputList)==2):
