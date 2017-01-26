@@ -28,4 +28,5 @@ these may or may not be implemented
 - when changing passwords, save previous ones too
 - save comment history
 - add MQTT publish/subscribe in order to send/receive encrypted accounts to others
+- change search so that all words after search-command are part of search
 

@@ -43,7 +43,7 @@
 #Some words about the origins of CLI Password Manager: 
 #http://sami.salkosuo.net/cli-password-manager/
 
-__version__="0.10"
+__version__="0.11"
 
 import sys
 import os
@@ -88,7 +88,7 @@ def main_clipwdmgr():
         print()
         print("For example: Set %s to DROPBOXDIR/clipwdmgr_accounts.txt " % CLIPWDMGR_FILE)
         sys.exit(1) 
-    
+
     debug("command line args: %s" % args)
 
 
@@ -96,7 +96,7 @@ def main_clipwdmgr():
     KEY=askPassphrase("Passphrase (CTRL-C to quit): ")
     if KEY==None:
         raise RuntimeError("Empty key not supported.")
-        
+
     if args.decrypt:
         account=args.decrypt[0]
         print(decryptString(KEY,account))
@@ -106,7 +106,7 @@ def main_clipwdmgr():
         #execute given commands
         cmds=args.cmd
         debug("commands: %s" % cmds)
-        for cmd in cmds:        
+        for cmd in cmds:
             openDatabase()
             try:
                 debug("Calling %s..." % cmd)
@@ -225,7 +225,7 @@ def infoCommand(inputList):
     print(formatString.format("Total accounts",str(totalAccounts)))
     lastUpdated=selectFirst("select updated from accounts order by updated desc")
     print(formatString.format("Last updated",lastUpdated))
-    
+
     print(formatString.format("Config file",CONFIG_FILE))
     print("Configuration:")
     configList("  ")
@@ -282,6 +282,26 @@ def encryptCommand(inputList):
     <start of name> [passphrase]||Encrypt selected accounts(s).
     """
     debug("entering encryptCommand")
+
+    cmd_parser = ThrowingArgumentParser(prog="encrypt")
+    cmd_parser.add_argument('-p','--passphrase', nargs=1, metavar='STR',help='Encryption passphrase.')
+    cmd_parser.add_argument('accounts', metavar='account_name', type=str, nargs='+',
+                    help='Account names, or beginning of account names, to encrypt.')
+    try:
+        cmd_args = cmd_parser.parse_args(inputList[1:])
+    except ArgumentParserError as parser_error:
+        print(parser_error)
+        return
+    except SystemExit as parser_error:
+        #ignore system exit errors
+        debug(parser_error)
+        return
+
+    print(cmd_args)
+
+    if 1==1:
+        return
+
     if verifyArgs(inputList,0,[2,3])==False:
         return
     arg=inputList[1]
@@ -294,7 +314,6 @@ def encryptCommand(inputList):
     for row in rows:
         name=row[COLUMN_NAME]
         print("%s: %s" % (name,encryptAccountRow(row,key)))
-        
 
 def decryptCommand(inputList):
     """
@@ -335,7 +354,7 @@ def selectCommand(inputList):
             for cname in columnNames:
                 value=row[cname]
                 if cname==COLUMN_PASSWORD and CONFIG[CFG_MASKPASSWORD]==True:
-                    value="********"          
+                    value="********"
                 values.append(shortenString(value))
             accountLine=formatString.format(*values)
             print(accountLine)
@@ -361,7 +380,7 @@ def deleteCommand(inputList):
         return
     loadAccounts(KEY)
     arg=inputList[1]
-    
+
     rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg))
     for row in rows:
         printAccountRow(row)
@@ -395,14 +414,14 @@ def editCommand(inputList):
             values.append(URL)
 
             oldUserName=row[COLUMN_USERNAME]
-            promptStr="User name OLD: (%s) NEW" % oldUserName 
+            promptStr="User name OLD: (%s) NEW" % oldUserName
             username=askAccountUsername(promptStr,oldUserName)
             values.append(username)
 
             email=modPrompt("Email",row[COLUMN_EMAIL])
             values.append(email)
 
-            originalPassword=row[COLUMN_PASSWORD]            
+            originalPassword=row[COLUMN_PASSWORD]
             pwd=askAccountPassword("Password OLD: (%s) NEW:" % (originalPassword),"Password generator is available. Type your password or type 'p'/'ps' to generate password or 'c' to use original password.",originalPassword)
 
             values.append(pwd)
@@ -458,7 +477,6 @@ def searchCommand(inputList):
     if verifyArgs(inputList,2)==False:
         return
     loadAccounts(KEY)
-    arg=inputList[1]
     where=""
     if arg.startswith("username="):
         arg=arg.replace("username=","")
@@ -483,7 +501,7 @@ def copyCommand(inputList):
     fieldToCopy=COLUMN_PASSWORD
     fieldName="Password"
     if len(inputList)==3:
-        tocp=inputList[2]    
+        tocp=inputList[2]
         if tocp=="pwd":
             fieldToCopy=COLUMN_PASSWORD
             fieldName="Password"
@@ -639,7 +657,7 @@ def helpCommand(inputList):
 
 def saveAccounts():
     #save accounts
-    #selet all accounts from accounts db 
+    #selet all accounts from accounts db
     #encrypt one at a time and save to file
 
     createPasswordFileBackups()
@@ -667,14 +685,14 @@ def encryptAccountRow(row,key=None):
 
 def printAccountRows(rows):
     #print account rows in columns
-    #used by list and search commands 
+    #used by list and search commands
     formatString=getColumnFormatString(6,CONFIG[CFG_COLUMN_LENGTH])
     headerLine=formatString.format(COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT)
     print(headerLine)
     for row in rows:
         pwd=row[COLUMN_PASSWORD]
         if CONFIG[CFG_MASKPASSWORD]==True:
-            pwd="********"          
+            pwd="********"
         pwd=shortenString(pwd)
         accountLine=formatString.format(shortenString(row[COLUMN_NAME]),shortenString(row[COLUMN_URL]),shortenString(row[COLUMN_USERNAME]),shortenString(row[COLUMN_EMAIL]),pwd,shortenString(row[COLUMN_COMMENT]))
         print(accountLine)
@@ -731,10 +749,15 @@ def getColumnFormatString(numberOfColumns,columnLength,delimiter="|",align="^"):
     debug("Format string: %s" % formatString)
     return formatString
 
-def verifyArgs(inputList,numberOfArgs,listOfAllowedNumberOfArgs=None):
+def verifyArgs(inputList,numberOfArgs,listOfAllowedNumberOfArgs=None,modifier="EQ"):
+    #modifier is EQ or GE, if EQ args must be equal to numberOfArgs 
+    #if GE args can be equal or greater
     ilen=len(inputList)
     debug("len(inputList): %d" % ilen)
     correctNumberOfArgs=False
+    if modifier=="GE":
+        return ilen >= numberOfArgs
+
     if listOfAllowedNumberOfArgs!=None and ilen in listOfAllowedNumberOfArgs:
         correctNumberOfArgs=True
     else:

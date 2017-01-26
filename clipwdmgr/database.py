@@ -106,7 +106,7 @@ def insertAccountToDB(accountString):
     columnNames=[]
     values=[]
     qmarks=[]
-    for key in accountDict.keys():            
+    for key in accountDict.keys():
         value=accountDict[key]
         if value is not "":
             columnNames.append(key)

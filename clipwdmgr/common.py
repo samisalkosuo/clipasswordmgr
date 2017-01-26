@@ -25,10 +25,18 @@ import os
 from datetime import datetime
 import time
 from .globals import *
+import argparse
+
+#from: http://stackoverflow.com/a/14728477
+class ArgumentParserError(Exception): pass
+
+class ThrowingArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ArgumentParserError(message)
 
 def findMaxKeyLength(dictionary):
     maxLen=0
-    for key in dictionary.keys():            
+    for key in dictionary.keys():
         if len(key)>maxLen:
             maxLen=len(key)
     return maxLen

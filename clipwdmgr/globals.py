@@ -25,7 +25,7 @@ import os
 from os.path import expanduser
 
 PROGRAMNAME="CLI Password Manager"
-COPYRIGHT="Copyright (C) 2015,2016 by Sami Salkosuo."
+COPYRIGHT="Copyright (C) 2015,2017 by Sami Salkosuo."
 LICENSE="Licensed under the MIT License."
 
 PROMPTSTRING="pwdmgr>"
