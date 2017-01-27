@@ -167,52 +167,102 @@ def aliasCommand(inputList):
     """
     [<name> <cmd> <cmdargs>]||View aliases or create alias named 'name' for command 'cmd cmdargs'.
     """
+
+    cmd_parser = ThrowingArgumentParser(prog="alias",description='View or create command alias.')
+    cmd_parser.add_argument('--name', metavar='NAME',type=str,required=False, help='Alias name.')
+    cmd_parser.add_argument('--command-name', dest='command_name', metavar='CMD',type=str, required=False,help='Command name.')
+    cmd_parser.add_argument('arguments', metavar='command_arg', type=str, nargs='*',
+                    help="Command arguments. If command argument includes '-', surround it with '\"' and spaces (for example: \" -cn1s \").)")
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
     aliases=CONFIG[CFG_ALIASES]
-    if(len(inputList)==1):
+    if cmd_args.name==None:
         #list aliases
         for alias in sorted(aliases.keys()):
             print("%s='%s'" % (alias,aliases[alias]))
     else:
-        #create new alias
-        alias=inputList[1]
-        cmd=inputList[2:]
-        aliases[alias]=" ".join(cmd)
+        if cmd_args.command_name is None:
+            print("-c, --command-name is required.")
+            (tmp,help_text)=parseCommandArgs(cmd_parser,['alias','-HELP'])
+            print("Usage: %s" % help_text[0])
+            return
+        else:
+            #create new alias
+            alias=cmd_args.name
+            cmd=cmd_args.command_name
+            args=cmd_args.arguments
+            aliasCmd=[]
+            aliasCmd.append(cmd)
+            for carg in args:
+                aliasCmd.append(carg)
+        aliasCmd=" ".join(aliasCmd)
+        aliases[alias]=aliasCmd
         saveConfig()
 
 def historyCommand(inputList):
     """
     [last | <index> [c] | clear]||View history, execute command or clear entire history. 'last' executes last command. 'c' after index copies command to clipboard.
     """
+
+    cmd_parser = ThrowingArgumentParser(prog="history",description='View history, execute command or clear entire history.')
+    cmd_parser.add_argument('-l','--last',required=False, nargs='?',default=0,metavar='INDEX', type=int, help='Execute last or last INDEXth command.')
+    cmd_parser.add_argument('-c','--copy', required=False, action='store_true',help="Copy command to clipboard.")
+    cmd_parser.add_argument('--clear', required=False, action='store_true',help="Clear history.")
+    cmd_parser.add_argument('-r','--repeat', required=False, action='store_true',help="Repeat last command.")
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
     history=CONFIG[CFG_HISTORY]
-    if(len(inputList)==1):
-        #list history
-        i=0
-        for cmd in history:
-            print("%d: %s" % (i,cmd))
-            i=i+1
-    if(len(inputList)==2):
-        arg=inputList[1]
-        if arg=="clear":
-            CONFIG[CFG_HISTORY]=[]
-            saveConfig()
-        else:
-            if arg=="last":
-                #repeat last command
-                cmd=history[-1]
-                if cmd!="repeat":
-                    callCmd(cmd)
-            else:
-                cmd=history[int(arg)]
-                callCmd(cmd)
-    if(len(inputList)==3):
-        arg=inputList[1]
-        cmd=history[int(arg)]
-        copyToClipboard(cmd,infoMessage="Command: '%s' copied to clipboard." % cmd)
+    if len(history)==0:
+        print("No history to repeat.")
+        return
+
+    if cmd_args.clear==True:
+        CONFIG[CFG_HISTORY]=[]
+        saveConfig()
+        return
+
+    def __callCmd(index):
+        cmd=history[index]
+        callCmd(cmd)
+        if cmd_args.copy==True:
+            copyToClipboard(cmd,infoMessage="Command: '%s' copied to clipboard." % cmd)
+
+    if cmd_args.repeat==True or (cmd_args.last==None and cmd_args.repeat==False):
+        __callCmd(-1)
+        return
+
+    if cmd_args.last is not None and cmd_args.last > 0:
+        __callCmd(cmd_args.last)
+        return
+
+    #if got this far, show history
+    i=0
+    for cmd in history:
+        print("%d: %s" % (i,cmd))
+        i=i+1
+
 
 def infoCommand(inputList):
     """
     ||Information about the program.
     """
+    cmd_parser = ThrowingArgumentParser(prog="info",description='Information about the program.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
 
     size=os.path.getsize(CLI_PASSWORD_FILE)
     formatString=getColumnFormatString(2,25,delimiter=": ",align="<")
@@ -240,10 +290,19 @@ def addCommand(inputList):
     [<name>]||Add new account.
     """
     debug("entering addCommand")
+
+    cmd_parser = ThrowingArgumentParser(prog="add",description='Add new account.')
+    cmd_parser.add_argument('name',metavar='NAME', type=str, nargs=1, help='Account name.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
     loadAccounts(KEY,"add")
-    name=None
-    if len(inputList)==2:
-        name=inputList[1]
+    name=cmd_args.name[0]
+
     if name is not None:
         print("Name     : %s" % name)
     else:
@@ -283,50 +342,50 @@ def encryptCommand(inputList):
     """
     debug("entering encryptCommand")
 
-    cmd_parser = ThrowingArgumentParser(prog="encrypt")
-    cmd_parser.add_argument('-p','--passphrase', nargs=1, metavar='STR',help='Encryption passphrase.')
+    cmd_parser = ThrowingArgumentParser(prog="encrypt",description='Encrypt selected accounts(s).')
+    cmd_parser.add_argument('-p','--passphrase', metavar='STR',help='Encryption passphrase.')
     cmd_parser.add_argument('accounts', metavar='account_name', type=str, nargs='+',
                     help='Account names, or beginning of account names, to encrypt.')
-    try:
-        cmd_args = cmd_parser.parse_args(inputList[1:])
-    except ArgumentParserError as parser_error:
-        print(parser_error)
-        return
-    except SystemExit as parser_error:
-        #ignore system exit errors
-        debug(parser_error)
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
         return
 
-    print(cmd_args)
-
-    if 1==1:
-        return
-
-    if verifyArgs(inputList,0,[2,3])==False:
-        return
-    arg=inputList[1]
-    debug("Arg: %s" % arg)
-    loadAccounts(KEY)
-    rows=executeSelect(DATABASE_ACCOUNTS_TABLE_COLUMNS,arg)
-    key=KEY
-    if len(inputList)==3:
-        key=createKey(inputList[2])
-    for row in rows:
-        name=row[COLUMN_NAME]
-        print("%s: %s" % (name,encryptAccountRow(row,key)))
+    for arg in cmd_args.accounts:
+        debug("Arg: %s" % arg)
+        loadAccounts(KEY)
+        rows=executeSelect(DATABASE_ACCOUNTS_TABLE_COLUMNS,arg)
+        key=KEY
+        if cmd_args.passphrase != None:
+            key=createKey(cmd_args.passphrase)
+        for row in rows:
+            name=row[COLUMN_NAME]
+            print("%s: %s" % (name,encryptAccountRow(row,key)))
 
 def decryptCommand(inputList):
     """
     <encrypted string> [passphrase]||Decrypt given string.
     """
     debug("entering decryptCommand")
-    if verifyArgs(inputList,0,[2,3])==False:
+
+    cmd_parser = ThrowingArgumentParser(prog="decrypt",description='Decrypt given string(s).')
+    cmd_parser.add_argument('-p','--passphrase', metavar='STR',help='Decryption passphrase.')
+    cmd_parser.add_argument('strings', metavar='str', type=str, nargs='+',
+                    help='Decrypted strings.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
         return
-    arg=inputList[1]
-    key=KEY
-    if len(inputList)==3:
-        key=createKey(inputList[2])
-    print(decryptString(key,arg))
+
+    for arg in cmd_args.strings:
+        key=KEY
+        if cmd_args.passphrase != None:
+            key=createKey(cmd_args.passphrase)
+        print(decryptString(key,arg))
 
 
 def selectCommand(inputList):
@@ -334,39 +393,65 @@ def selectCommand(inputList):
     [<rest of select SQL>]||Execute SELECT SQL and print results as columns.
     """
     debug("entering selectCommand")
-    if(len(inputList)==1):
-        #show help
+
+    cmd_parser = ThrowingArgumentParser(prog="select",description='Execute SELECT SQL statement and print results.')
+    cmd_parser.add_argument('-i','--info', required=False, action='store_true',help="Accounts-table info.")
+    cmd_parser.add_argument('statement', metavar='query_part', type=str, nargs='*',
+                    help='Select SQL query parts.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
+    queryParts=cmd_args.statement
+    if cmd_args.info==True or len(queryParts)==0:
         formatString=getColumnFormatString(2,20,delimiter=": ",align="<")
         print(formatString.format("Table","ACCOUNTS"))
         print(formatString.format("Columns",",".join(DATABASE_ACCOUNTS_TABLE_COLUMNS)))
-    else:
-        loadAccounts(KEY)
-        sql=" ".join(inputList)
-        (rows,columns)=executeSql(sql)
-        columnNames=[]
-        for c in columns:
-            columnNames.append(c[0])
-        formatString=getColumnFormatString(len(columnNames),CONFIG[CFG_COLUMN_LENGTH])
-        headerLine=formatString.format(*columnNames)
-        print(headerLine)
-        for row in rows:
-            values=[]
-            for cname in columnNames:
-                value=row[cname]
-                if cname==COLUMN_PASSWORD and CONFIG[CFG_MASKPASSWORD]==True:
-                    value="********"
-                values.append(shortenString(value))
-            accountLine=formatString.format(*values)
-            print(accountLine)
+        print()
+        print("Example select-command:")
+        print('  select * from accounts where email like "%acme.com"')
+        return
+    loadAccounts(KEY)
+    sql="select %s" % (" ".join(queryParts))
+    debug("SQL: %s" % sql)
+    (rows,columns)=executeSql(sql)
+    columnNames=[]
+    for c in columns:
+        columnNames.append(c[0])
+    formatString=getColumnFormatString(len(columnNames),CONFIG[CFG_COLUMN_LENGTH])
+    headerLine=formatString.format(*columnNames)
+    print(headerLine)
+    for row in rows:
+        values=[]
+        for cname in columnNames:
+            value=row[cname]
+            if cname==COLUMN_PASSWORD and CONFIG[CFG_MASKPASSWORD]==True:
+                value="********"
+            values.append(shortenString(value))
+        accountLine=formatString.format(*values)
+        print(accountLine)
 
 def listCommand(inputList):
     """
     [<start of name>]||Print all accounts or all that match given start of name.
     """
+    cmd_parser = ThrowingArgumentParser(prog="list",description='Print all accounts or all that match given start of name.')
+    cmd_parser.add_argument('name', metavar='NAME', type=str, nargs='?',
+                    help='Start of name.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
     loadAccounts(KEY)
     arg=""
-    if(len(inputList)==2):
-        arg=inputList[1]
+    if cmd_args.name:
+        arg=cmd_args.name
 
     rows=executeSelect([COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
     printAccountRows(rows)
@@ -376,10 +461,19 @@ def deleteCommand(inputList):
     <start of name>||Delete account(s) that match given string.
     """
     debug("entering deleteCommand")
-    if verifyArgs(inputList,2)==False:
+
+    cmd_parser = ThrowingArgumentParser(prog="delete",description='Delete account(s) that match given string.')
+    cmd_parser.add_argument('name', metavar='NAME', type=str, nargs=1,
+                    help='Start of name.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
         return
+
     loadAccounts(KEY)
-    arg=inputList[1]
+    arg=cmd_args.name[0]
 
     rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg))
     for row in rows:
@@ -395,10 +489,19 @@ def editCommand(inputList):
     <start of name>||Edit account(s) that match given string.
     """
     debug("entering editCommand")
-    if verifyArgs(inputList,2)==False:
+
+    cmd_parser = ThrowingArgumentParser(prog="edit",description='Edit account(s) that match given string.')
+    cmd_parser.add_argument('name', metavar='NAME', type=str, nargs=1,
+                    help='Start of name.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
         return
+
     loadAccounts(KEY)
-    arg=inputList[1]
+    arg=cmd_args.name[0]
 
     #put results in list so that update cursor doesn't interfere with select cursor when updating account
     #there note about this here: http://apidoc.apsw.googlecode.com/hg/cursor.html
@@ -454,7 +557,15 @@ def changepassphraseCommand(inputList):
     ||Change passphrase.
     """
     debug("entering changepassphraseCommand")
-    print("Not yet implemented.")
+
+    cmd_parser = ThrowingArgumentParser(prog="changepassphrase",description='Change passphrase.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
     newKey=askPassphrase("New passphrase: ")
     if newKey==None:
         return
@@ -474,18 +585,35 @@ def searchCommand(inputList):
     <string in name,url or comment> | username=<string> | email=<string>||Search accounts that have matching string.
     """
     debug("entering searchCommand")
-    if verifyArgs(inputList,2)==False:
+
+    cmd_parser = ThrowingArgumentParser(prog="search",description='Search accounts that match given string.')
+    group = cmd_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-u','--username',metavar='UNAME', type=str, help='Search by username.')
+    group.add_argument('-e','--email',metavar='EMAIL', type=str, help='Search by email.')
+    group.add_argument('searchstring', metavar='STRING', type=str, nargs='?',
+                    help='Search string in name, url or comment.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
         return
+
     loadAccounts(KEY)
     where=""
-    if arg.startswith("username="):
-        arg=arg.replace("username=","")
+
+    arg=cmd_args.username
+    if arg is not None:
         where="where %s like '%%%s%%' " % (COLUMN_USERNAME,arg)
-    elif arg.startswith("email="):
-        arg=arg.replace("email=","")
+
+    arg=cmd_args.email
+    if arg is not None:
         where="where %s like '%%%s%%' " % (COLUMN_EMAIL,arg)
-    else:
+
+    arg=cmd_args.searchstring
+    if arg is not None:
         where="where %s like '%%%s%%' or %s like '%%%s%%' or %s like '%%%s%%' " % (COLUMN_NAME,arg,COLUMN_COMMENT,arg,COLUMN_URL,arg)
+
 
     rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],whereClause=where)
     printAccountRows(rows)
@@ -494,32 +622,45 @@ def copyCommand(inputList):
     """
     <start of name> | (pwd | uid | email | url | comment)||Copy value of given field of account to clipboard. Default is pwd.
     """
-    if verifyArgs(inputList,None,[2,3])==False:
+    debug("entering copyCommand")
+
+    cmd_parser = ThrowingArgumentParser(prog="copy",description='Copy value of given field of account to clipboard.')
+    group = cmd_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-u','--username',action='store_true', help='Copy username to clipboard.')
+    group.add_argument('-e','--email',action='store_true', help='Copy email to clipboard.')
+    group.add_argument('-p','--password',action='store_true', help='Copy password to clipboard.')
+    group.add_argument('-U','--url',action='store_true', help='Copy URL to clipboard.')
+    group.add_argument('-c','--comment',action='store_true', help='Copy comment to clipboard.')
+
+    cmd_parser.add_argument('account', metavar='NAME', type=str, nargs=1,
+                    help='Account name.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
         return
 
-    #TODO: more fine grained when selecting account, make it similar to view
-    fieldToCopy=COLUMN_PASSWORD
-    fieldName="Password"
-    if len(inputList)==3:
-        tocp=inputList[2]
-        if tocp=="pwd":
-            fieldToCopy=COLUMN_PASSWORD
-            fieldName="Password"
-        if tocp=="uid":
-            fieldToCopy=COLUMN_USERNAME
-            fieldName="User name"
-        if tocp=="email":
-            fieldToCopy=COLUMN_EMAIL
-            fieldName="Email"
-        if tocp=="url":
-            fieldToCopy=COLUMN_URL
-            fieldName="URL"
-        if tocp=="comment":
-            fieldToCopy=COLUMN_COMMENT
-            fieldName="Comment"
+    fieldToCopy=""
+    fieldName=""
+    if cmd_args.username==True:
+        fieldToCopy=COLUMN_USERNAME
+        fieldName="User name"
+    if cmd_args.email==True:
+        fieldToCopy=COLUMN_EMAIL
+        fieldName="Email"
+    if cmd_args.password==True:
+        fieldToCopy=COLUMN_PASSWORD
+        fieldName="Password"
+    if cmd_args.url==True:
+        fieldToCopy=COLUMN_URL
+        fieldName="URL"
+    if cmd_args.comment==True:
+        fieldToCopy=COLUMN_COMMENT
+        fieldName="Comment"
 
     loadAccounts(KEY)
-    arg=inputList[1]
+    arg=cmd_args.account[0]
 
     rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
     for row in rows:
@@ -537,19 +678,33 @@ def viewCommand(inputList):
     <start of name> [username=<string>] [comment=<string>]||View account(s) details that start with given string and have matching username and/or comment.
     """
     debug("entering viewCommand")
-    if verifyArgs(inputList,0,[2,3,4])==False:
+
+    cmd_parser = ThrowingArgumentParser(prog="view",description='View account(s) details that start with given string and have matching username and/or comment.')
+    cmd_parser.add_argument('-u','--username',metavar='UNAME', required=False, type=str, help='Account includes username.')
+    cmd_parser.add_argument('-c','--comment',metavar='COMMENT', required=False, type=str, help='String in comment field.')
+
+    cmd_parser.add_argument('account', metavar='NAME', type=str, nargs=1,
+                    help='Account name.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
         return
 
     loadAccounts(KEY)
-    arg=inputList[1]
+    arg=cmd_args.account[0]
+
     where="where name like \"%s%%\"" % arg
-    for input in inputList[2:]:
-        fields=["username","comment"]
-        for field in fields:
-            fe=field+"="
-            if input.find(fe)>-1:
-                where=where+" and %s like '%%%s%%'" % (field,input.replace(fe,""))
-        #has username
+
+    arg=cmd_args.username
+    if arg:
+        where=where+" and username like '%%%s%%'" % (arg)
+
+    arg=cmd_args.comment
+    if arg:
+        where=where+" and comment like '%%%s%%'" % (arg)
+
     rows=executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg,whereClause=where)
     for row in rows:
         printAccountRow(row)
@@ -562,28 +717,45 @@ def configCommand(inputList):
     """
     [<key>=<value>]||List available configuration or set config values.
     """
-    if verifyArgs(inputList,0,[1,2])==False:
+    cmd_parser = ThrowingArgumentParser(prog="config",description='List configuration or set configuration values.')
+    cmd_parser.add_argument('-k','--key',metavar='KEY', required=False, type=str, help='Config key name.')
+    cmd_parser.add_argument('-v','--value',metavar='VALUE', required=False, type=str, help='Config value for key.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
         return
-    if(len(inputList)==2):
-        cmd=inputList[1]
-        if cmd.find("=")>-1:
-            keyValue=cmd.split("=")
-            configSet(keyValue[0],keyValue[1])
-        else:
-            print("%s not recognized" % cmd)
-    else:
+
+    if cmd_args.key==None and cmd_args.value==None:
         #list current config
         configList()
+        return
+    if bool(cmd_args.key) ^ bool(cmd_args.value):
+        print('--key and --value are both required')
+        return
+
+    configSet(cmd_args.key,cmd_args.value)
+
 
 def pwdCommand(inputList):
     """
     [length]||Generate password using simple generator with characters a-z,A-Z and 0-9. Default length is 12.
     """
-    pwdlen=12
-    if(len(inputList)==2):
-        pwdlen=int(inputList[1])
-    pwd=pwdPassword(pwdlen)
-    print(pwd)
+    cmd_parser = ThrowingArgumentParser(prog="pwd",description='Generate password using characters a-z,A-Z and 0-9.')
+    cmd_parser.add_argument('-l','--length',metavar='LENGTH', required=False, type=int, default=12, help='Password length. Default is 12.')
+    cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of passwords to generate.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
+    pwdlen=cmd_args.length
+    for i in range(cmd_args.total):
+        pwd=pwdPassword(pwdlen)
+        print(pwd)
     copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
 
 def pwgenCommand(inputList):
@@ -591,8 +763,23 @@ def pwgenCommand(inputList):
     [<pwgen opts and args>]||Generate password(s) using pwgen.
     """
     debug("entering pwgenCommand")
+
+    cmd_parser = ThrowingArgumentParser(prog="pwgen",description='Generate password(s) using pwgen.')
+    cmd_parser.add_argument('options', metavar='pwgen_opt', type=str, nargs='*',
+                    help='Options for pwgen.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
+    options=[]
+    for option in cmd_args.options:
+        options.append(option.strip())
+
     if pwgenAvailable()==True:
-        pwds=pwgenPassword(inputList[1:])
+        pwds=pwgenPassword(options)
         print(pwds)
         copyToClipboard(pwds,infoMessage="Password copied to clipboard.")
     else:
@@ -602,26 +789,53 @@ def unameCommand(inputList):
     """
     [<format>]||Generate random username using given format. Format is string of C=consonants, V=vowels and N=numbers. Default format is CVCCVC.
     """
-    formatStr="CVCCVC"
-    if(len(inputList)==2):
-        formatStr=inputList[1]
-    #TODO: generate givn number of usernames
-    N=1
+    cmd_parser = ThrowingArgumentParser(prog="uname",description='Generate random username using given format.')
+    cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of usernames to generate.')
+    cmd_parser.add_argument('format',metavar='FORMAT', type=str, nargs='?', default="CVCCVC", help='Username format: C=consonant, V=vowel, N=number, +=space. Default is: CVCCVC.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
+    formatStr=cmd_args.format
+    N=cmd_args.total
     for i in range(N):
         pwd=generate_username(formatStr,False)
         print(pwd)
-    #copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
 
 
 def exitCommand(inputList):
     """||Exit program."""
+    cmd_parser = ThrowingArgumentParser(prog="exit",description='Exit program.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
     pass
 
 def helpCommand(inputList):
     """||This help."""
     debug("entering helpCommand")
+
+    cmd_parser = ThrowingArgumentParser(prog="help",description='This help.')
+
+    (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
+    if help_text is not None:
+        return help_text
+    if cmd_args is None:
+        return
+
     versionInfo()
     print()
+    print("testing")
+    print(encryptCommand(["encrypt","-HELP"]))
+    func=globals().get("infoCommand")
+    print(func(["info","-HELP"]))
     print("Commands:")
     names=[]
     for _n in globals().keys():
@@ -636,21 +850,25 @@ def helpCommand(inputList):
         if name.endswith("Command"):
             cmdName=name.replace("Command","").lower()
             func=globals().get(name)
-            (args,desc)=getDocString(func)
+#            print(func([cmdName,"-HELP"]))
+            (args,desc)=func([cmdName,"-HELP"])
+            #(args,desc)=getDocString(func)
             if len(cmdName)>maxLenName:
                 maxLenName=len(cmdName)
             if len(args)>maxLenArgs:
                 maxLenArgs=len(args)
             if len(desc)>maxLenDesc:
                 maxLenDesc=len(desc)
-            commandHelp=[cmdName,args,desc]
+            #commandHelp=[cmdName,args,desc]
+            commandHelp=[args,desc]
             commandList.append(commandHelp)
-    formatStringName=getColumnFormatString(1,maxLenName,delimiter=" ",align="<")
+    #formatStringName=getColumnFormatString(1,maxLenName,delimiter=" ",align="<")
     formatStringArgs=getColumnFormatString(1,maxLenArgs,delimiter=" ",align="<")
     formatStringDesc=getColumnFormatString(1,maxLenDesc,delimiter=" ",align="<")
 
     for c in commandList:
-        print("  ",formatStringName.format(c[0]),formatStringArgs.format(c[1]),formatStringDesc.format(c[2]))
+        #print("  ",formatStringName.format(c[0]),formatStringArgs.format(c[1]),formatStringDesc.format(c[2]))
+        print("  ",formatStringArgs.format(c[0]),formatStringDesc.format(c[1]))
 
 #============================================================================================
 #functions
@@ -730,7 +948,7 @@ def printAccountRow(row):
     for field in row.keys():#fields:
         value=row[field]
         if field==COLUMN_PASSWORD and CONFIG[CFG_MASKPASSWORD_IN_VIEW]==True:
-            value="********"          
+            value="********"
         print(formatString.format(field,value))
 
 def shortenString(str):

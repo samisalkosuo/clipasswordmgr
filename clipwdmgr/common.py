@@ -34,6 +34,30 @@ class ThrowingArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise ArgumentParserError(message)
 
+def parseCommandArgs(cmd_parser,inputList):
+    '''Return tuple (cmd_args, help_for_help_command).
+       If help then cmd_args is None, and if arg parsing succesfull help is None
+       Exception in parsing, then both are None because error is printed/logged in this
+       function
+    '''
+    #this is to get help text for internal help command
+    if len(inputList)==2 and inputList[1]=="-HELP":
+        return (None,(cmd_parser.format_usage().replace("usage:","").strip(),cmd_parser.description))
+
+    try:
+        cmd_args = cmd_parser.parse_args(inputList[1:])
+        return (cmd_args,None)
+    except ArgumentParserError as parser_error:
+        print(parser_error)
+        print(cmd_parser.format_usage().strip())
+        #print(cmd_parser.description)
+        return (None, None)
+    except SystemExit as parser_error:
+        #ignore system exit errors
+        debug(parser_error)
+        return (None,None)
+
+
 def findMaxKeyLength(dictionary):
     maxLen=0
     for key in dictionary.keys():
