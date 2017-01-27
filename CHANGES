@@ -1,6 +1,7 @@
 Version 0.11 (26.01.2017)
 
-- 
+- Refactored all commands to use argparse command line options.
+- Added new options.
 
 Version 0.10 (07.09.2016)
 
