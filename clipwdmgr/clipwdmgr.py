@@ -5,7 +5,7 @@
 #
 #The MIT License (MIT)
 #
-#Copyright (c) 2015,2016 Sami Salkosuo
+#Copyright (c) 2015,2017 Sami Salkosuo
 #
 #Permission is hereby granted, free of charge, to any person obtaining a copy
 #of this software and associated documentation files (the "Software"), to deal
@@ -169,9 +169,10 @@ def aliasCommand(inputList):
     """
 
     cmd_parser = ThrowingArgumentParser(prog="alias",description='View or create command alias.')
-    cmd_parser.add_argument('--name', metavar='NAME',type=str,required=False, help='Alias name.')
-    cmd_parser.add_argument('--command-name', dest='command_name', metavar='CMD',type=str, required=False,help='Command name.')
-    cmd_parser.add_argument('arguments', metavar='command_arg', type=str, nargs='*',
+    cmd_parser.add_argument('-n','--name', metavar='NAME',type=str,required=False, help='Alias name.')
+    cmd_parser.add_argument('-c','--command-name', dest='command_name', metavar='CMD',type=str, required=False,help='Command name.')
+    cmd_parser.add_argument('-d','--delete', required=False, action='store_true',help="Delete alias.")
+    cmd_parser.add_argument('arguments', metavar='arg', type=str, nargs='*',
                     help="Command arguments. If command argument includes '-', surround it with '\"' and spaces (for example: \" -cn1s \").)")
 
     (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
@@ -186,23 +187,27 @@ def aliasCommand(inputList):
         for alias in sorted(aliases.keys()):
             print("%s='%s'" % (alias,aliases[alias]))
     else:
-        if cmd_args.command_name is None:
+        alias=cmd_args.name
+        if cmd_args.command_name is None and cmd_args.delete is False:
             print("-c, --command-name is required.")
             (tmp,help_text)=parseCommandArgs(cmd_parser,['alias','-HELP'])
             print("Usage: %s" % help_text[0])
             return
         else:
-            #create new alias
-            alias=cmd_args.name
-            cmd=cmd_args.command_name
-            args=cmd_args.arguments
-            aliasCmd=[]
-            aliasCmd.append(cmd)
-            for carg in args:
-                aliasCmd.append(carg)
-        aliasCmd=" ".join(aliasCmd)
-        aliases[alias]=aliasCmd
-        saveConfig()
+            if cmd_args.delete is not None:
+                #delete alias
+                del aliases[alias]
+            else:
+                #create new alias
+                cmd=cmd_args.command_name
+                args=cmd_args.arguments
+                aliasCmd=[]
+                aliasCmd.append(cmd)
+                for carg in args:
+                    aliasCmd.append(carg)
+                aliasCmd=" ".join(aliasCmd)
+                aliases[alias]=aliasCmd
+            saveConfig()
 
 def historyCommand(inputList):
     """
@@ -344,6 +349,7 @@ def encryptCommand(inputList):
 
     cmd_parser = ThrowingArgumentParser(prog="encrypt",description='Encrypt selected accounts(s).')
     cmd_parser.add_argument('-p','--passphrase', metavar='STR',help='Encryption passphrase.')
+    cmd_parser.add_argument('-n','--nocopy', required=False, action='store_true',help="Do not copy encrypted string to clipboard.")
     cmd_parser.add_argument('accounts', metavar='account_name', type=str, nargs='+',
                     help='Account names, or beginning of account names, to encrypt.')
 
@@ -362,7 +368,10 @@ def encryptCommand(inputList):
             key=createKey(cmd_args.passphrase)
         for row in rows:
             name=row[COLUMN_NAME]
-            print("%s: %s" % (name,encryptAccountRow(row,key)))
+            encryptedString=encryptAccountRow(row,key)
+            print("%s: %s" % (name,encryptedString))
+            if cmd_args.nocopy==False:
+                copyToClipboard(encryptedString)
 
 def decryptCommand(inputList):
     """
@@ -682,6 +691,7 @@ def viewCommand(inputList):
     cmd_parser = ThrowingArgumentParser(prog="view",description='View account(s) details that start with given string and have matching username and/or comment.')
     cmd_parser.add_argument('-u','--username',metavar='UNAME', required=False, type=str, help='Account includes username.')
     cmd_parser.add_argument('-c','--comment',metavar='COMMENT', required=False, type=str, help='String in comment field.')
+    cmd_parser.add_argument('-e','--encrypt', required=False, action='store_true', help='View account as encrypted string.')
 
     cmd_parser.add_argument('account', metavar='NAME', type=str, nargs=1,
                     help='Account name.')
@@ -707,11 +717,16 @@ def viewCommand(inputList):
 
     rows=executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg,whereClause=where)
     for row in rows:
-        printAccountRow(row)
-        pwd=row[COLUMN_PASSWORD]
-        if CONFIG[CFG_COPY_PASSWORD_ON_VIEW]==True:
-            print()
-            copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
+        if cmd_args.encrypt==True:
+            encryptedAccount=encryptAccountRow(row)
+            print(encryptedAccount)
+            copyToClipboard(encryptedAccount,infoMessage="Encrypted account copied to clipboard.")
+        else:
+            printAccountRow(row)
+            pwd=row[COLUMN_PASSWORD]
+            if CONFIG[CFG_COPY_PASSWORD_ON_VIEW]==True:
+                print()
+                copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
 
 def configCommand(inputList):
     """
@@ -765,8 +780,8 @@ def pwgenCommand(inputList):
     debug("entering pwgenCommand")
 
     cmd_parser = ThrowingArgumentParser(prog="pwgen",description='Generate password(s) using pwgen.')
-    cmd_parser.add_argument('options', metavar='pwgen_opt', type=str, nargs='*',
-                    help='Options for pwgen.')
+    cmd_parser.add_argument('options', metavar='opt', type=str, nargs='*',
+                    help='Options/arguments for pwgen.')
 
     (cmd_args,help_text)=parseCommandArgs(cmd_parser,inputList)
     if help_text is not None:
@@ -832,10 +847,7 @@ def helpCommand(inputList):
 
     versionInfo()
     print()
-    print("testing")
-    print(encryptCommand(["encrypt","-HELP"]))
     func=globals().get("infoCommand")
-    print(func(["info","-HELP"]))
     print("Commands:")
     names=[]
     for _n in globals().keys():
@@ -850,25 +862,22 @@ def helpCommand(inputList):
         if name.endswith("Command"):
             cmdName=name.replace("Command","").lower()
             func=globals().get(name)
-#            print(func([cmdName,"-HELP"]))
             (args,desc)=func([cmdName,"-HELP"])
-            #(args,desc)=getDocString(func)
+            args=args.replace(cmdName,"").strip()
             if len(cmdName)>maxLenName:
                 maxLenName=len(cmdName)
             if len(args)>maxLenArgs:
                 maxLenArgs=len(args)
             if len(desc)>maxLenDesc:
                 maxLenDesc=len(desc)
-            #commandHelp=[cmdName,args,desc]
-            commandHelp=[args,desc]
+            commandHelp=[cmdName,args,desc]
             commandList.append(commandHelp)
-    #formatStringName=getColumnFormatString(1,maxLenName,delimiter=" ",align="<")
+    formatStringName=getColumnFormatString(1,maxLenName,delimiter=" ",align="<")
     formatStringArgs=getColumnFormatString(1,maxLenArgs,delimiter=" ",align="<")
     formatStringDesc=getColumnFormatString(1,maxLenDesc,delimiter=" ",align="<")
 
     for c in commandList:
-        #print("  ",formatStringName.format(c[0]),formatStringArgs.format(c[1]),formatStringDesc.format(c[2]))
-        print("  ",formatStringArgs.format(c[0]),formatStringDesc.format(c[1]))
+        print("  ",formatStringName.format(c[0]),formatStringArgs.format(c[1]),formatStringDesc.format(c[2]))
 
 #============================================================================================
 #functions
@@ -966,29 +975,6 @@ def getColumnFormatString(numberOfColumns,columnLength,delimiter="|",align="^"):
     formatString=delimiter.join(columns).format(ln=columnLength)
     debug("Format string: %s" % formatString)
     return formatString
-
-def verifyArgs(inputList,numberOfArgs,listOfAllowedNumberOfArgs=None,modifier="EQ"):
-    #modifier is EQ or GE, if EQ args must be equal to numberOfArgs 
-    #if GE args can be equal or greater
-    ilen=len(inputList)
-    debug("len(inputList): %d" % ilen)
-    correctNumberOfArgs=False
-    if modifier=="GE":
-        return ilen >= numberOfArgs
-
-    if listOfAllowedNumberOfArgs!=None and ilen in listOfAllowedNumberOfArgs:
-        correctNumberOfArgs=True
-    else:
-        correctNumberOfArgs=ilen == numberOfArgs
-    if not correctNumberOfArgs:
-        cmdName=inputList[0].lower()
-        cmd="%sCommand" % cmdName
-        func=globals().get(cmd)
-        (args,desc)=getDocString(func)
-        print("Wrong number of arguments.")
-        print("Usage: %s %s" % (cmdName, args))
-        return False
-    return True
 
 def loadConfig():
     #load config to sqlite database, if db not exists load defaults
@@ -1127,24 +1113,6 @@ def createPasswordFileBackups():
         printError("Password file back up failed.")
         error(fileOnly=True)
 
-def getDocString(commandFunc):
-    #return tuple from command function
-    docString=commandFunc.__doc__
-    args=""
-    desc=""
-    debug("Parsing %s" % commandFunc)
-    if docString is not None:
-        try:
-            docString=docString.strip()
-            doc=docString.split("||")
-            args=doc[0].strip()
-            desc=doc[1].strip()
-        except:
-            desc=docString
-    else:
-        desc="Not documented."
-    return (args,desc)
-
 def copyToClipboard(stringToCopy,infoMessage=None):
     if CONFIG[CFG_ENABLE_COPY_TO_CLIPBOARD]==True:
         cygwinClipboard="/dev/clipboard"
@@ -1176,5 +1144,5 @@ def main():
     debug("END")
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     main()

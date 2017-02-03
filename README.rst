@@ -76,6 +76,6 @@ List-command lists all accounts::
 
 About
 -----
-                                                              
+
 Some words about the origins of CLI Password Manager: http://sami.salkosuo.net/cli-password-manager/
 and some other words about v0.4 http://sami.salkosuo.net/cli-password-manager-v0-4/.

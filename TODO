@@ -12,16 +12,13 @@ these may or may not be implemented
 - add --readme option to generate README.md file
 - add option to limit columns in list, like limit email to 10 chars etc.
 - add multiline comments, to add and to edit multiline comments
-- add argparse or similar parsing to commands. for example: view --username s --comment df name
 - add note command to add encrypted notes that are no actual accounts/passwords
-- add delete alias
+    -note has title, created, updated, content
 - add ID field, to be used to uniquely select accounts
 - add category or tag etc to accounts. category/tag would help to  to view
   only related to category/tag for example, web hosting account (many accounts
   related to single hosting like admin, email, users, ftp etc)
-- add repeat command that repeats last command
 - add possibility to hide accounts, no delete but only hide from UI
-- add command to view encrypted text string
 - add option to send encrypted text string via email, etc
 - command suite style application instead of shell. keep encryption pwd in memory?
 - view command to accept any string in account name not just starting with
@@ -29,4 +26,8 @@ these may or may not be implemented
 - save comment history
 - add MQTT publish/subscribe in order to send/receive encrypted accounts to others
 - change search so that all words after search-command are part of search
+- DONE add delete alias
+- DONE add argparse or similar parsing to commands. for example: view --username s --comment df name
+- DONE add repeat command that repeats last command
+- DONE add command to view encrypted text string
 
