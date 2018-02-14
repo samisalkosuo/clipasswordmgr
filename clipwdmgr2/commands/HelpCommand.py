@@ -54,14 +54,16 @@ class HelpCommand(SuperCommand):
         #implement command here
         versionInfo()
 
-        print("TODO: add info-command")
-        cmdList=list(self.cmd_handler.commands.keys())
-        cmdList.sort()
+        print("TODO: add info-command")        
+
+        print()
+        print("Commands:")
+
         maxLenName=0
         maxLenArgs=0
         maxLenDesc=0
         commandList=[]
-        for cmdName in cmdList:
+        for cmdName in self.cmd_handler.cmdNameList:
             cmdObj=self.cmd_handler.commands[cmdName]
             cmdObj.parseCommandArgs([cmdName,"-HELP"])
             (args,desc)=cmdObj.executeCommand()

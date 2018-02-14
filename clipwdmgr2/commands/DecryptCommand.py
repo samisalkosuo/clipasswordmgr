@@ -22,37 +22,37 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #THE SOFTWARE.
 #
-#template for commands - copy this to new file and rename and change this description
+#decrypt command
 #
 
+from ..crypto.crypto import *
 from ..utils.utils import *
 from ..utils.functions import *
 from .SuperCommand import *
 from ..globals import *
 from ..globals import GlobalVariables
 
-class __TemplateCommand(SuperCommand):
+class DecryptCommand(SuperCommand):
 
     def __init__(self,cmd_handler):
         super().__init__(cmd_handler)
     
     
     def parseCommandArgs(self,userInputList):
-        #implement in command class
-        #parse arguments like in this method
-        cmd_parser = ThrowingArgumentParser(prog="uname",description='Generate random username using given format.')
-        cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of usernames to generate.')
-        cmd_parser.add_argument('format',metavar='FORMAT', type=str, nargs='?', default="CVCCVC", help='Username format: C=consonant, V=vowel, N=number, +=space. Default is: CVCCVC.')
+
+        cmd_parser = ThrowingArgumentParser(prog="decrypt",description='Decrypt given string(s).')
+        cmd_parser.add_argument('-p','--passphrase', metavar='STR',help='Decryption passphrase.')
+        cmd_parser.add_argument('strings', metavar='str', type=str, nargs='+', help='Encrypted strings.')
 
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
 
     def execute(self):
 
-        #implement command here
-
-        formatStr=self.cmd_args.format
-        N=self.cmd_args.total
-        for i in range(N):
-            pwd=generate_username(formatStr,False)
-            print(pwd)
+        if self.cmd_args.passphrase != None:
+            key=createKey(self.cmd_args.passphrase)
+        else:
+            key=GlobalVariables.KEY
+        
+        for arg in self.cmd_args.strings:            
+            print(decryptString(key,arg))
 

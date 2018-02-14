@@ -137,22 +137,14 @@ def currentTimestamp():
 def formatTimestamp(timestamp):
     return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
+def getCurrentTimestampString():
+    return datetime.fromtimestamp(time.time()).strftime('%Y%m%d%H%M%S')
+    
+
 def boolValue(value):
     string=str(value)
     return string.lower() in ("yes","y","true", "on", "t", "1")
 
-def modPrompt(field,defaultValue=None):
-    promptStr=""
-    if defaultValue==None:
-      promptStr="%s: " % (field)
-    else:
-      promptStr="%s (%s): " % (field,defaultValue)
-    n=prompt(promptStr)
-    if n=="":
-        n=defaultValue
-    else:
-        n=n.strip()
-    return n
 
 def generate_username(formatStr,capitalize=True):
     """Generate random user name. formatStr is like CVC-CVC which generates username with consonant-vowel-consonant-consonant-vowel-consonant"""

@@ -22,7 +22,8 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #THE SOFTWARE.
 #
-#template for commands - copy this to new file and rename and change this description
+#exit-command, does nothing except provides help text to help-command and cmd name 
+# for command completion 
 #
 
 from ..utils.utils import *
@@ -31,7 +32,7 @@ from .SuperCommand import *
 from ..globals import *
 from ..globals import GlobalVariables
 
-class __TemplateCommand(SuperCommand):
+class ExitCommand(SuperCommand):
 
     def __init__(self,cmd_handler):
         super().__init__(cmd_handler)
@@ -40,19 +41,13 @@ class __TemplateCommand(SuperCommand):
     def parseCommandArgs(self,userInputList):
         #implement in command class
         #parse arguments like in this method
-        cmd_parser = ThrowingArgumentParser(prog="uname",description='Generate random username using given format.')
-        cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of usernames to generate.')
-        cmd_parser.add_argument('format',metavar='FORMAT', type=str, nargs='?', default="CVCCVC", help='Username format: C=consonant, V=vowel, N=number, +=space. Default is: CVCCVC.')
+        cmd_parser = ThrowingArgumentParser(prog="exit",description='Exit program.')
 
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
 
     def execute(self):
 
         #implement command here
-
-        formatStr=self.cmd_args.format
-        N=self.cmd_args.total
-        for i in range(N):
-            pwd=generate_username(formatStr,False)
-            print(pwd)
+        print("Exit program.")
+        
 

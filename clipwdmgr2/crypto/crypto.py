@@ -21,7 +21,7 @@
 #THE SOFTWARE.
 
 #encryption/decryption related functions
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet,InvalidToken
 import hashlib
 import base64
 from prompt_toolkit import prompt
@@ -54,6 +54,3 @@ def decryptString(key,str):
     fernet = Fernet(key)
     decryptedString = fernet.decrypt(str.encode("utf-8"))
     return decryptedString.decode("utf-8")
-
-
-

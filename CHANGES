@@ -1,3 +1,9 @@
+Version 0.12 (14.02.2018)
+
+- Uses python-prompt-toolkit. Includes now command history, 
+  command completion and other nice features.
+- Major refactoring. Changed about everything.
+
 Version 0.11 (26.01.2017)
 
 - Refactored all commands to use argparse command line options.

@@ -22,37 +22,46 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #THE SOFTWARE.
 #
-#template for commands - copy this to new file and rename and change this description
+#encrypt command
 #
 
+from ..crypto.crypto import *
 from ..utils.utils import *
 from ..utils.functions import *
 from .SuperCommand import *
 from ..globals import *
 from ..globals import GlobalVariables
 
-class __TemplateCommand(SuperCommand):
+class EncryptCommand(SuperCommand):
 
     def __init__(self,cmd_handler):
         super().__init__(cmd_handler)
     
     
     def parseCommandArgs(self,userInputList):
-        #implement in command class
-        #parse arguments like in this method
-        cmd_parser = ThrowingArgumentParser(prog="uname",description='Generate random username using given format.')
-        cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of usernames to generate.')
-        cmd_parser.add_argument('format',metavar='FORMAT', type=str, nargs='?', default="CVCCVC", help='Username format: C=consonant, V=vowel, N=number, +=space. Default is: CVCCVC.')
+
+        cmd_parser = ThrowingArgumentParser(prog="encrypt",description='Encrypt selected accounts(s).')
+        cmd_parser.add_argument('-p','--passphrase', metavar='STR',help='Encryption passphrase.')
+        cmd_parser.add_argument('-n','--nocopy', required=False, action='store_true',help="Do not copy encrypted string to clipboard.")
+        cmd_parser.add_argument('accounts', metavar='account_name', type=str, nargs='+',
+                    help='Account names, or beginning of account names, to encrypt.')
 
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
 
     def execute(self):
 
-        #implement command here
-
-        formatStr=self.cmd_args.format
-        N=self.cmd_args.total
-        for i in range(N):
-            pwd=generate_username(formatStr,False)
-            print(pwd)
+        for arg in self.cmd_args.accounts:
+            loadAccounts(GlobalVariables.KEY)
+            rows=executeSelect(DATABASE_ACCOUNTS_TABLE_COLUMNS,arg)
+            key=GlobalVariables.KEY
+            if self.cmd_args.passphrase != None:
+                key=createKey(self.cmd_args.passphrase)
+            
+            for row in rows:
+                name=row[COLUMN_NAME]
+                encryptedString=encryptAccountRow(row,key)
+                print("%s: %s" % (name,encryptedString))
+                if self.cmd_args.nocopy==False:
+                    copyToClipboard(encryptedString)
+                    print("Encrypted text copied to clipboard.")
 

@@ -20,10 +20,14 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #THE SOFTWARE.
 
+
 #All global variables/constants
 import os
 from os.path import expanduser
 from .clipwdmgr import __version__
+
+#global constants
+#variables are in the GlobalVariables singleton at the end of this file
 
 PROGRAMNAME="CLI Password Manager"
 COPYRIGHT="Copyright (C) 2015, 2018 by Sami Salkosuo."
@@ -35,9 +39,6 @@ def versionInfo():
     print(LICENSE)
 
 PROMPTSTRING="pwdmgr>"
-
-#encryption/decryption key, set when program starts
-KEY=None
 
 FIELD_DELIM="|||::|||"
 
@@ -58,7 +59,9 @@ DATABASE_ACCOUNTS_TABLE_COLUMN_IS_TIMESTAMP=[COLUMN_CREATED,COLUMN_UPDATED]
 CLIPWDMGR_ACCOUNTS_FILE_NAME="clipwdmgr_accounts.txt"
 #env variable name that holds data files like password file, cmd history, settings
 CLIPWDMGR_DATA_DIR="CLIPWDMGR_DATA_DIR"
-
+#file that holds accounts
+#combines datadir and accounts file name
+#CLI_PASSWORD_FILE=None
 
 #this is to display account info
 COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY=[COLUMN_NAME,COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT]
@@ -97,3 +100,26 @@ CONFIG={
 CONFIG_FILE="%s/.clipwdmgr.cfg" % (expanduser("~"))
 
 DEBUG=False
+
+
+#global variables singleton class to share global variables across
+#many modules
+#from http://python-3-patterns-idioms-test.readthedocs.io/en/latest/Singleton.html  
+class Borg:
+    _shared_state = {}
+    def __init__(self):
+        self.__dict__ = self._shared_state
+
+#global variables singleton class to share global variables across
+#many modules
+class GlobalVariables(Borg):
+    def __init__(self):
+        Borg.__init__(self)
+        CLI_PASSWORD_FILE=None
+        VERSION=None
+        #encryption/decryption key, set when program starts
+        KEY=None
+
+
+    def __str__(self): return self.val
+

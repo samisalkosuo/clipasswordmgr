@@ -50,12 +50,14 @@ import random
 from prompt_toolkit import prompt
 from prompt_toolkit.styles import Style
 from prompt_toolkit.history import FileHistory
-from prompt_toolkit.shortcuts import set_title
+from prompt_toolkit.shortcuts import set_title, CompleteStyle
+from prompt_toolkit.contrib.completers import WordCompleter
 
 from .globals import *
 from .crypto.crypto import *
 from .utils.utils import *
 from .commands.CommandHandler import CommandHandler
+from .globals import GlobalVariables
 
 
 
@@ -64,6 +66,8 @@ args=None
 
 #command history
 cmdHistoryFile=FileHistory("%s/%s" % (os.environ.get(CLIPWDMGR_DATA_DIR),"cmd_history.txt"))
+#command completer for prompt
+cmdCompleter=None
 
 #style for toolbar
 style = Style.from_dict({
@@ -78,7 +82,7 @@ style = Style.from_dict({
 def bottom_toolbar():
     #return [('bottom-toolbar', ' This is a toolbar. ')]
     programName="%s v%s" % (PROGRAMNAME, __version__)
-    return "%s There will be cool info here." % programName
+    return "%s. There will be cool info here." % programName
 
 def parseCommandLineArgs():
     #parse command line args
@@ -95,15 +99,28 @@ def error():
     print(traceback.format_exc())
 
 def myPrompt():
-    return prompt(PROMPTSTRING,history=cmdHistoryFile,bottom_toolbar=bottom_toolbar, style=style)
+    return prompt(PROMPTSTRING,
+            history=cmdHistoryFile,
+            completer=cmdCompleter,
+            complete_while_typing=False,
+            #complete_style=CompleteStyle.READLINE_LIKE,
+            bottom_toolbar=bottom_toolbar, 
+            style=style)
     #toolbar does not work when using cygwin
 
 def main_clipwdmgr():
     programName="%s v%s" % (PROGRAMNAME, __version__)
     set_title(programName)
-    #print(programName)
-    #print()
+
+    #set version as global variable
+    GlobalVariables.VERSION=__version__
+
     cmdHandler=CommandHandler()
+    
+    #set command completer
+    global cmdCompleter
+    cmdCompleter=WordCompleter(cmdHandler.cmdNameList)
+    
     userInput=myPrompt()
     while userInput!="exit":
         try:
@@ -130,15 +147,18 @@ def checkEnv():
         print("%s does not exist or is not a directory." % dataDir)
         sys.exit(2)
 
+    #set password file variabe
+    GlobalVariables.CLI_PASSWORD_FILE="%s/%s" %(dataDir,CLIPWDMGR_ACCOUNTS_FILE_NAME)
+
 #get key to be used to encrypt and decrypt
 def getKey():
-    global KEY
+    
     try:
-        KEY=askPassphrase("Passphrase: ")
+        GlobalVariables.KEY=askPassphrase("Passphrase: ")
     except KeyboardInterrupt:
         sys.exit(1)
     
-    if KEY==None:
+    if GlobalVariables.KEY==None:
         print("Empty passphrase is not allowed.")
         sys.exit(3)
 

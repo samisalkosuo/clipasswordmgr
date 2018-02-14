@@ -51,7 +51,7 @@ class SuperCommand:
             return None
 
         self.execute()
-
+        
     #execute command
     #override and implement in subclass
     def execute(self):

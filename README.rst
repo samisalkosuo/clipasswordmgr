@@ -8,8 +8,9 @@ Major refactoring.
 Windows: use cmder or conemu because prompt-toolkit works better than plain command window.
 Cygwin does not work correctly
 
-Install prompt-toolkit using
-pip install https://github.com/jonathanslenders/python-prompt-toolkit/archive/2.0.zip
+Install prompt-toolkit using:
+
+- pip install https://github.com/jonathanslenders/python-prompt-toolkit/archive/2.0.zip
 
 
 Version 0.11
