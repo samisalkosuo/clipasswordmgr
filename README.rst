@@ -1,6 +1,20 @@
 Command Line Password Manager
 =============================
 
+Version 0.12
+
+Major refactoring. 
+
+Windows: use cmder or conemu because prompt-toolkit works better than plain command window.
+Cygwin does not work correctly
+
+Install prompt-toolkit using
+pip install https://github.com/jonathanslenders/python-prompt-toolkit/archive/2.0.zip
+
+
+Version 0.11
+------------
+
 Command Line Password Manager is a tool to manage accounts/passwords in the command line. 
 All accounts/passwords are stored in an encrypted file, protected by user given passphrase.
 
