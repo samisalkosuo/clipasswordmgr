@@ -5,7 +5,7 @@
  
  
 import re
-from setuptools import setup
+from setuptools import setup,find_packages
 
 projectName="clipwdmgr"
 scriptFile="%s/%s.py" % (projectName,projectName)
