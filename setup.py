@@ -25,8 +25,8 @@ with open("README.rst", "rb") as f:
  
 setup(
     name = projectName,
-    #packages = [projectName],
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages = [projectName,"%s/commands" % projectName,"%s/crypto" % projectName,"%s/database" % projectName,"%s/utils" % projectName],
+    #packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     entry_points = {
         "console_scripts": ['%s = %s.%s:main' % (projectName,projectName,projectName)]
         },
