@@ -51,11 +51,12 @@ Using CLI Password Manager is as simple as using any shell.
 - Add new account using 'add' command.
 - List all accounts using 'list' command.
 - View an account using 'view' command.
+- When viewing an account, password is copied to clipboard. This is very handy :-).
 - Commands have options and help. For example: 'view -h' and 'copy -h'.
 - Command history and completion is available.
 - See help for more.
 
-All accounts are stored to password file in CLIPWDMGR_DATA_DIR directory. All accounts
+All accounts are stored to a password file in CLIPWDMGR_DATA_DIR directory. All accounts
 are encrypted using your own passphrase.
 
 
