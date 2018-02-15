@@ -38,6 +38,12 @@ from .DecryptCommand import *
 from .EncryptCommand import *
 from .AddAccountCommand import *
 from .DeleteCommand import *
+from .EditCommand import *
+from .SearchCommand import *
+from .SelectCommand import *
+from .CopyCommand import *
+from .InfoCommand import *
+
 
 from ..globals import *
 from ..crypto.crypto import *
@@ -63,6 +69,11 @@ class CommandHandler:
         self.commands["encrypt"]=EncryptCommand(self)
         self.commands["add"]=AddAccountCommand(self)
         self.commands["delete"]=DeleteCommand(self)
+        self.commands["edit"]=EditCommand(self)
+        self.commands["search"]=SearchCommand(self)
+        self.commands["select"]=SelectCommand(self)
+        self.commands["copy"]=CopyCommand(self)
+        self.commands["info"]=InfoCommand(self)
 
         self.cmdNameList=list(self.commands.keys())
         self.cmdNameList.sort()
@@ -82,7 +93,7 @@ class CommandHandler:
         try:
             commandObject=self.commands[cmdName]
         except KeyError:
-            print("%s is unrecognized."% cmdName)
+            print("%s is unrecognized command."% cmdName)
         else:
             try:
                 #open inmemory sqlite database to be used in the commands

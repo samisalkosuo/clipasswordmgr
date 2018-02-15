@@ -32,7 +32,7 @@ setup(
     version = version,
     description = description,
     long_description = long_descr,
-    install_requires = ['cryptography','pyperclip==1.5.11'],
+    install_requires = ['cryptography','pyperclip'],
     author = "Sami Salkosuo",
     author_email = "dev@rnd-dev.com",
     url = "https://github.com/samisalkosuo/clipasswordmgr",
@@ -45,8 +45,7 @@ setup(
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.4",
-    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Security",
     "Topic :: Utilities"

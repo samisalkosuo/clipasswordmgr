@@ -27,6 +27,7 @@ from prompt_toolkit import prompt
 
 from ..globals import *
 from ..globals import GlobalVariables
+from ..utils.settings import Settings
 from .utils import *
 from ..database.database import *
 
@@ -38,7 +39,7 @@ def printAccountRow(row):
 
     for field in row.keys():#fields:
         value=row[field]
-        if field==COLUMN_PASSWORD and CONFIG[CFG_MASKPASSWORD_IN_VIEW]==True:
+        if field==COLUMN_PASSWORD and Settings().getBoolean(SETTING_MASK_PASSWORD_ON_VIEW)==True:
             value="********"
         print(formatString.format(field,value))
 
@@ -46,21 +47,23 @@ def printAccountRow(row):
 def printAccountRows(rows):
     #print account rows in columns
     #used by list and search commands
-    columnLength=10#CONFIG[CFG_COLUMN_LENGTH]
+    
+    columnLength=Settings().getInt(SETTING_DEFAULT_COLUMN_WIDTH)
     formatString=getColumnFormatString(6,columnLength)
     headerLine=formatString.format(COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT)
     print(headerLine)
     for row in rows:
         pwd=row[COLUMN_PASSWORD]
-        if CONFIG[CFG_MASKPASSWORD]==True:
+        if Settings().getBoolean(SETTING_MASK_PASSWORD)==True:
             pwd="********"
         pwd=shortenString(pwd)
         accountLine=formatString.format(shortenString(row[COLUMN_NAME]),shortenString(row[COLUMN_URL]),shortenString(row[COLUMN_USERNAME]),shortenString(row[COLUMN_EMAIL]),pwd,shortenString(row[COLUMN_COMMENT]))
         print(accountLine)
 
 def shortenString(str):
-    if len(str)>CONFIG[CFG_COLUMN_LENGTH]:
-        str="%s..." % str[0:CONFIG[CFG_COLUMN_LENGTH]-3]
+    columnWidth=Settings().getInt(SETTING_DEFAULT_COLUMN_WIDTH)
+    if len(str)>columnWidth:
+        str="%s..." % str[0:columnWidth-3]
     return str
 
 def saveAccounts():
@@ -102,7 +105,7 @@ def createPasswordFileBackups():
     #create password backup file
     try:
         passwordFile=filename=GlobalVariables.CLI_PASSWORD_FILE
-        maxBackups=10#CONFIG[CFG_MAX_PASSWORD_FILE_BACKUPS]
+        maxBackups=Settings().get(SETTING_MAX_PASSWORD_FILE_BACKUPS)
         if os.path.isfile(filename)==False:
             return
         currentBackup=maxBackups

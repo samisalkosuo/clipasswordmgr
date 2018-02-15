@@ -22,33 +22,50 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #THE SOFTWARE.
 #
-#settings-command
+#search-command
 #
 
+from ..database.database import *
 from ..utils.utils import *
 from ..utils.functions import *
 from .SuperCommand import *
 from ..globals import *
 from ..globals import GlobalVariables
 
-class SettingsCommand(SuperCommand):
+class SearchCommand(SuperCommand):
 
     def __init__(self,cmd_handler):
         super().__init__(cmd_handler)
     
+    
     def parseCommandArgs(self,userInputList):
-        #implement in command class
-        #parse arguments like in this method
-        cmd_parser = ThrowingArgumentParser(prog="settings",description='Program settings.')
-        #cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of usernames to generate.')
-        #cmd_parser.add_argument('format',metavar='FORMAT', type=str, nargs='?', default="CVCCVC", help='Username format: C=consonant, V=vowel, N=number, +=space. Default is: CVCCVC.')
+        cmd_parser = ThrowingArgumentParser(prog="search",description='Search accounts that match given string.')
+        group = cmd_parser.add_mutually_exclusive_group(required=True)
+        group.add_argument('-u','--username',metavar='UNAME', type=str, help='Search by username.')
+        group.add_argument('-e','--email',metavar='EMAIL', type=str, help='Search by email.')
+        group.add_argument('searchstring', metavar='STRING', type=str, nargs='?',
+                    help='Search string in name, url or comment.')
 
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
 
     def execute(self):
-        #settings may include: complete word whe ntyping, completion type readline
-        #toolbar, column length, default uname format etc etc
-        #save command history
-        #implement command here
-        print("TODO: configurable settings ")
+
+        loadAccounts(GlobalVariables.KEY)
+        where=""
+
+        arg=self.cmd_args.username
+        if arg is not None:
+            where="where %s like '%%%s%%' " % (COLUMN_USERNAME,arg)
+
+        arg=self.cmd_args.email
+        if arg is not None:
+            where="where %s like '%%%s%%' " % (COLUMN_EMAIL,arg)
+
+        arg=self.cmd_args.searchstring
+        if arg is not None:
+            where="where %s like '%%%s%%' or %s like '%%%s%%' or %s like '%%%s%%' " % (COLUMN_NAME,arg,COLUMN_COMMENT,arg,COLUMN_URL,arg)
+
+
+        rows=executeSelect([COLUMN_URL,COLUMN_CREATED,COLUMN_UPDATED,COLUMN_NAME,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],whereClause=where)
+        printAccountRows(rows)
 

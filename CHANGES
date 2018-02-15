@@ -1,5 +1,6 @@
-Version 0.12 (14.02.2018)
+Version 0.12 (15.02.2018)
 
+- Removed commands no longer relevant.
 - Uses python-prompt-toolkit. Includes now command history, 
   command completion and other nice features.
 - Major refactoring. Changed about everything.

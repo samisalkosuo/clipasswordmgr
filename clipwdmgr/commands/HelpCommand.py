@@ -54,8 +54,6 @@ class HelpCommand(SuperCommand):
         #implement command here
         versionInfo()
 
-        print("TODO: add info-command")        
-
         print()
         print("Commands:")
 

@@ -22,28 +22,41 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #THE SOFTWARE.
 #
-#uname-command
+#delete command
+#
 
 from ..utils.utils import *
+from ..database.database import *
+from ..utils.functions import *
 from .SuperCommand import *
+from ..globals import *
+from ..globals import GlobalVariables
 
-class UserNameCommand(SuperCommand):
+class DeleteCommand(SuperCommand):
 
     def __init__(self,cmd_handler):
         super().__init__(cmd_handler)
     
-
+    
     def parseCommandArgs(self,userInputList):
-        cmd_parser = ThrowingArgumentParser(prog="uname",description='Generate random username using given format.')
-        cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of usernames to generate.')
-        cmd_parser.add_argument('format',metavar='FORMAT', type=str, nargs='?', default="CVCCVC", help='Username format: C=consonant, V=vowel, N=number, +=space. Default is: CVCCVC.')
+        cmd_parser = ThrowingArgumentParser(prog="delete",description='Delete account(s) that match given string.')
+        cmd_parser.add_argument('name', metavar='NAME', type=str, nargs=1,help='Start of name.')
 
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
 
     def execute(self):
-            
-        formatStr=self.cmd_args.format
-        N=self.cmd_args.total
-        for i in range(N):
-            pwd=generate_username(formatStr,False)
-            print(pwd)
+
+        loadAccounts(GlobalVariables.KEY)
+        arg=self.cmd_args.name[0]
+
+        rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg))
+        if not rows:
+            print("No accounts to delete.")
+        for row in rows:
+            printAccountRow(row)
+            if boolValue(prompt("Delete this account (yes/no)? ")):
+                sql="delete from accounts where %s=?" % (COLUMN_CREATED)
+                executeDelete(sql,(row[COLUMN_CREATED],))
+                saveAccounts()
+                print("Account deleted.")
+

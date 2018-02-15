@@ -33,7 +33,7 @@ from ..utils.functions import *
 from .SuperCommand import *
 from ..globals import *
 from ..globals import GlobalVariables
-
+from ..utils.settings import Settings
 
 class ViewAccountCommand(SuperCommand):
 
@@ -81,7 +81,8 @@ class ViewAccountCommand(SuperCommand):
             else:
                 printAccountRow(row)
                 pwd=row[COLUMN_PASSWORD]
-                if CONFIG[CFG_COPY_PASSWORD_ON_VIEW]==True:
+                
+                if Settings().getBoolean(SETTING_COPY_PASSWORD_ON_VIEW)==True:
                     print()
                     copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
 
