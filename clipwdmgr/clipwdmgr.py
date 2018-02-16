@@ -194,6 +194,11 @@ def main():
         pass
 
     checkEnv()
+
+    #print program & version when starting
+    programName="%s v%s" % (PROGRAMNAME, __version__)
+    print(programName)
+
     getKey()
 
     if args.file:
