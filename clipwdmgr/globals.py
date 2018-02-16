@@ -105,8 +105,12 @@ class Borg:
 #global variables singleton class to share global variables across
 #many modules
 class GlobalVariables(Borg):
+    
     def __init__(self):
         Borg.__init__(self)
+        
+        #all these variables must be set before reading
+
         VERSION=None
 
         #password file and path
@@ -118,5 +122,8 @@ class GlobalVariables(Borg):
         #encryption/decryption key, set when program starts
         KEY=None
 
+        #what was copied to clipboard
+        COPIED_TO_CLIPBOARD="n/a"
+        REAL_CONTENT_OF_CLIPBOARD="n/a"
 
     def __str__(self): return self.val

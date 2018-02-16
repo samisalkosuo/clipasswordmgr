@@ -38,6 +38,7 @@ class UserNameCommand(SuperCommand):
     def parseCommandArgs(self,userInputList):
         cmd_parser = ThrowingArgumentParser(prog="uname",description='Generate random username using given format.')
         cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of usernames to generate.')
+        cmd_parser.add_argument('-c','--casesensitive', required=False, action='store_true', help='Format string is case sensitive (upper case V results upper case vowel and so on).')
 
         defaultUsernameFormat=Settings().get(SETTING_DEFAULT_UNAME_FORMAT)
         cmd_parser.add_argument('format',metavar='FORMAT', type=str, nargs='?', default=defaultUsernameFormat, help='Username format: C=consonant, V=vowel, N=number, +=space. Default is: %s.' % defaultUsernameFormat)
@@ -45,9 +46,12 @@ class UserNameCommand(SuperCommand):
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
 
     def execute(self):
-            
+        
         formatStr=self.cmd_args.format
         N=self.cmd_args.total
         for i in range(N):
-            pwd=generate_username(formatStr,False)
+            if self.cmd_args.casesensitive:
+                pwd=generate_username_case_sensitive(formatStr)
+            else:
+                pwd=generate_username(formatStr,False)
             print(pwd)

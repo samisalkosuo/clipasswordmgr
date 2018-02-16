@@ -59,19 +59,19 @@ class CopyCommand(SuperCommand):
         fieldName=""
         if self.cmd_args.username==True:
             fieldToCopy=COLUMN_USERNAME
-            fieldName="User name"
+            fieldName="user name"
         if self.cmd_args.email==True:
             fieldToCopy=COLUMN_EMAIL
-            fieldName="Email"
+            fieldName="email"
         if self.cmd_args.password==True:
             fieldToCopy=COLUMN_PASSWORD
-            fieldName="Password"
+            fieldName="password"
         if self.cmd_args.url==True:
             fieldToCopy=COLUMN_URL
             fieldName="URL"
         if self.cmd_args.comment==True:
             fieldToCopy=COLUMN_COMMENT
-            fieldName="Comment"
+            fieldName="comment"
 
         loadAccounts(GlobalVariables.KEY)
         arg=self.cmd_args.account[0]
@@ -84,5 +84,5 @@ class CopyCommand(SuperCommand):
             if f=="":
                 print("%s: %s is empty." % (name,fieldName))
             else:
-                copyToClipboard(f,infoMessage="%s: %s copied to clipboard." % (name,fieldName))
+                copyToClipboard(f,infoMessage="%s: %s copied to clipboard." % (name,fieldName),account=name,clipboardContent=fieldName)
 

@@ -62,6 +62,5 @@ class EncryptCommand(SuperCommand):
                 encryptedString=encryptAccountRow(row,key)
                 print("%s: %s" % (name,encryptedString))
                 if self.cmd_args.nocopy==False:
-                    copyToClipboard(encryptedString)
-                    print("Encrypted text copied to clipboard.")
+                    copyToClipboard(encryptedString,infoMessage="Encrypted account copied to clipboard.",account=name,clipboardContent="encrypted text")
 

@@ -77,12 +77,12 @@ class ViewAccountCommand(SuperCommand):
             if self.cmd_args.encrypt==True:
                 encryptedAccount=encryptAccountRow(row)
                 print(encryptedAccount)
-                copyToClipboard(encryptedAccount,infoMessage="Encrypted account copied to clipboard.")
+                copyToClipboard(encryptedAccount,infoMessage="Encrypted account copied to clipboard.",account=row[COLUMN_NAME],clipboardContent="encrypted text")
             else:
                 printAccountRow(row)
                 pwd=row[COLUMN_PASSWORD]
                 
                 if Settings().getBoolean(SETTING_COPY_PASSWORD_ON_VIEW)==True:
                     print()
-                    copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
+                    copyToClipboard(pwd,infoMessage="Password copied to clipboard.",account=row[COLUMN_NAME],clipboardContent="password")
 

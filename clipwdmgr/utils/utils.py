@@ -200,6 +200,58 @@ def generate_username(formatStr,capitalize=True):
 
     return username
 
+def generate_username_case_sensitive(formatStr):
+    """Generate random user name. formatStr is like CVC-CVC which generates username with consonant-vowel-consonant-consonant-vowel-consonant.
+    formatStr is case sensitive. """
+    import random
+    import re
+
+    vowelsLower="eyuioa"
+    consonantsLower="mnbvcxzlkjhgfdsptrwq"
+    vowelsUpper="EYUIOA"
+    consonantsUpper="MNBVCXZLKJHGFDSPTRWQ"
+                     
+    numbers="0123456789"
+
+    def randomNumber():
+        return random.choice(numbers)
+
+    def randomVowelUpper():
+        return random.choice(vowelsUpper)
+
+    def randomConsonantUpper():
+        return random.choice(consonantsUpper)
+
+    def randomVowelLower():
+        return random.choice(vowelsLower)
+
+    def randomConsonantLower():
+        return random.choice(consonantsLower)
+
+
+    regex = re.compile('[^a-zA-Z+]')
+    formatStr=regex.sub('', formatStr)
+    username=[]
+    for c in formatStr:
+        if c=="C":
+            username.append(randomConsonantUpper())
+        if c=="V":
+            username.append(randomVowelUpper())
+        if c=="c":
+            username.append(randomConsonantLower())
+        if c=="v":
+            username.append(randomVowelLower())
+        if c=="N":
+            username.append(randomNumber())
+        if c=="n":
+            username.append(randomNumber())
+        if c=="+":
+            username.append(" ")
+    username="".join(username)
+
+    return username
+
+
 def pwdPassword(length=12):
     chars="1234567890poiuytrewqasdfghjklmnbvcxzQWERTYUIOPLKJHGFDSAZXCVBNM"
     pwd=[]
@@ -207,7 +259,7 @@ def pwdPassword(length=12):
         pwd.append(random.choice(chars))
     return "".join(pwd)
 
-def copyToClipboard(stringToCopy,infoMessage=None):
+def copyToClipboard(stringToCopy,infoMessage=None,account=None,clipboardContent=None):
     if Settings().get(SETTING_ENABLE_CLIPBOARD_COPY)==True:
         cygwinClipboard="/dev/clipboard"
         if os.path.exists(cygwinClipboard):
@@ -215,11 +267,32 @@ def copyToClipboard(stringToCopy,infoMessage=None):
             clipboardDevice.write(stringToCopy)
             if infoMessage != None:
                 print(infoMessage)
+            if account!=None and clipboardContent!=None:
+                GlobalVariables.COPIED_TO_CLIPBOARD="%s of' %s'" % (clipboardContent,account)
         else:
-            import pyperclip
-            pyperclip.copy(stringToCopy)
-            if infoMessage != None:
-                print(infoMessage)
+            try:
+                import pyperclip
+                pyperclip.copy(stringToCopy)
+                GlobalVariables.REAL_CONTENT_OF_CLIPBOARD=stringToCopy
+                if infoMessage != None:
+                    print(infoMessage)
+                if account!=None and clipboardContent!=None:
+                    if account!='':
+                        GlobalVariables.COPIED_TO_CLIPBOARD="%s of '%s'" % (clipboardContent,account)
+                    else:
+                        GlobalVariables.COPIED_TO_CLIPBOARD="%s" % (clipboardContent)
+                        
+            except:
+                print("Error copying to clipboard.")
+
+def getClipboardText():
+    try:
+        import pyperclip
+        text=pyperclip.paste()
+        return text
+    except:
+        print("Error accessing clipboard.")
+        return "-"
 
 def getColumnFormatString(numberOfColumns,columnLength,delimiter="|",align="^"):
     header="{{:%s{ln}}}" % align

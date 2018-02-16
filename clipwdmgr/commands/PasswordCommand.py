@@ -50,5 +50,5 @@ class PasswordCommand(SuperCommand):
         for i in range(self.cmd_args.total):
             pwd=pwdPassword(pwdlen)
             print(pwd)
-        copyToClipboard(pwd,infoMessage="Password copied to clipboard.")
+        copyToClipboard(pwd,infoMessage="Password copied to clipboard.",account="",clipboardContent="generated password")
 

@@ -36,7 +36,7 @@
 #  prompt-toolkit
 #
 
-__version__="0.12"
+__version__="0.13"
 
 import sys
 import os
@@ -82,7 +82,12 @@ style = Style.from_dict({
 def bottom_toolbar():
     #return [('bottom-toolbar', ' This is a toolbar. ')]
     programName="%s v%s" % (PROGRAMNAME, __version__)
-    return "%s. There will be cool info here." % programName
+    
+    clipboardText="-"
+    if getClipboardText() == GlobalVariables.REAL_CONTENT_OF_CLIPBOARD:
+        clipboardText=GlobalVariables.COPIED_TO_CLIPBOARD
+    
+    return "%s. Clipboard: %s." % (programName,clipboardText)
 
 def parseCommandLineArgs():
     #parse command line args
@@ -197,6 +202,9 @@ def main():
         #if no help, AttributeError is thrown
         #no problem, continue
         pass
+    #set copied to clipboard initial value
+    GlobalVariables.COPIED_TO_CLIPBOARD="-"
+    GlobalVariables.REAL_CONTENT_OF_CLIPBOARD="-"
 
     checkEnv()
 
