@@ -91,6 +91,8 @@ def parseCommandLineArgs():
     parser.add_argument('-f','--file', nargs=1,metavar='FILE', help='use given passwords file.')
     parser.add_argument('-d','--decrypt', nargs=1, metavar='STR',help='Decrypt single account string.')
     parser.add_argument('-v,--version', action='version', version="%s v%s" % (PROGRAMNAME, __version__))
+    parser.add_argument('--passphrase', nargs=1, metavar='STR',help='Passphrase.')
+    
     global args
     args = parser.parse_args()
 
@@ -154,10 +156,13 @@ def checkEnv():
 #get key to be used to encrypt and decrypt
 def getKey():
     
-    try:
-        GlobalVariables.KEY=askPassphrase("Passphrase: ")
-    except KeyboardInterrupt:
-        sys.exit(1)
+    if args.passphrase:
+        GlobalVariables.KEY=createKey(args.passphrase[0])
+    else:
+        try:
+            GlobalVariables.KEY=askPassphrase("Passphrase: ")
+        except KeyboardInterrupt:
+            sys.exit(1)
     
     if GlobalVariables.KEY==None:
         print("Empty passphrase is not allowed.")
