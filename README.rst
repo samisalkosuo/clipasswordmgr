@@ -18,6 +18,7 @@ Set CLIPWDMGR_DATA_DIR to Dropbox or other similar directory and you can use CLI
 across many computers.
 
 Note to Windows-users: 
+
 - use cmder or conemu because prompt-toolkit might work better than the standard command window.
 - prompt-toolkit in Cygwin does not work correctly.
 
@@ -51,6 +52,7 @@ Using CLI Password Manager is as simple as using any shell.
 - Add new account using 'add' command.
 - List all accounts using 'list' command.
 - View an account using 'view' command.
+- Copy password or user name to clipboard.
 - When viewing an account, password is copied to clipboard. This is very handy :-).
 - Commands have options and help. For example: 'view -h' and 'copy -h'.
 - Command history and completion is available.

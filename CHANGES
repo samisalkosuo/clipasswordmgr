@@ -1,3 +1,11 @@
+Version 0.13 (16.02.2018)
+
+- Added clipboard info to toolbar. Shows what was last copied
+  to clipboard by this program.
+- Added -c,--casesensitive option to username-command.
+- Added --passphrase command line option.
+- Prints program name and version when starting.
+
 Version 0.12 (15.02.2018)
 
 - Removed commands no longer relevant.
