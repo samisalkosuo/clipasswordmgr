@@ -54,6 +54,7 @@ Using CLI Password Manager is as simple as using any shell.
 - View an account using 'view' command.
 - Copy password or user name to clipboard.
 - When viewing an account, password is copied to clipboard. This is very handy :-).
+- There are keyboard shortcuts to copy password (and other fields) of last viewed account. This is also handy :-).
 - Commands have options and help. For example: 'view -h' and 'copy -h'.
 - Command history and completion is available.
 - See help for more.

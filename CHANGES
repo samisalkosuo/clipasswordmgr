@@ -1,8 +1,9 @@
-Version 0.13 (16.02.2018)
+Version 0.13 (19.02.2018)
 
+- Added keyboard shortcuts to copy fields to clipboard for the last viewed account.
 - Added clipboard info to toolbar. Shows what was last copied
   to clipboard by this program.
-- Added -c,--casesensitive option to username-command.
+- Added -c,--casesensitive option to uname-command.
 - Added --passphrase command line option.
 - Prints program name and version when starting.
 

@@ -126,4 +126,12 @@ class GlobalVariables(Borg):
         COPIED_TO_CLIPBOARD="n/a"
         REAL_CONTENT_OF_CLIPBOARD="n/a"
 
+        #last account viewed
+        LAST_ACCOUNT_VIEWED_NAME="-"
+        LAST_ACCOUNT_VIEWED_USERNAME="-"
+        LAST_ACCOUNT_VIEWED_URL="-"
+        LAST_ACCOUNT_VIEWED_PASSWORD="-"
+        LAST_ACCOUNT_VIEWED_EMAIL="-"
+        LAST_ACCOUNT_VIEWED_COMMENT="-"
+
     def __str__(self): return self.val

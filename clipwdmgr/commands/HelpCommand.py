@@ -81,4 +81,14 @@ class HelpCommand(SuperCommand):
 
         for c in commandList:
             print("  ",formatStringName.format(c[0]),formatStringArgs.format(c[1]),formatStringDesc.format(c[2]))
+
+        print()
+        print("Keyboard shortcuts:")
+        print("  Keyboard shortcuts are available for the last account viewed using view-command.")
+        print()
+        print("  Ctrl-c Ctrl-c: Copy comment to clipboard.")
+        print("  Ctrl-c Ctrl-e: Copy email to clipboard.")
+        print("  Ctrl-c Ctrl-n: Copy user name to clipboard.")
+        print("  Ctrl-c Ctrl-p: Copy password to clipboard.")
+        print("  Ctrl-c Ctrl-u: Copy URL  to clipboard.")
             

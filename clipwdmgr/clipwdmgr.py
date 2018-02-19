@@ -52,14 +52,14 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.shortcuts import set_title, CompleteStyle
 from prompt_toolkit.contrib.completers import WordCompleter
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.application import run_in_terminal
 
 from .globals import *
 from .crypto.crypto import *
 from .utils.utils import *
 from .commands.CommandHandler import CommandHandler
 from .globals import GlobalVariables
-
-
 
 #command line args
 args=None
@@ -68,6 +68,9 @@ args=None
 cmdHistoryFile=FileHistory("%s/%s" % (os.environ.get(CLIPWDMGR_DATA_DIR),"cmd_history.txt"))
 #command completer for prompt
 cmdCompleter=None
+
+#key bindings
+bindings=None
 
 #style for toolbar
 style = Style.from_dict({
@@ -80,14 +83,18 @@ style = Style.from_dict({
 
 #toolbar
 def bottom_toolbar():
-    #return [('bottom-toolbar', ' This is a toolbar. ')]
-    programName="%s v%s" % (PROGRAMNAME, __version__)
-    
+
     clipboardText="-"
     if getClipboardText() == GlobalVariables.REAL_CONTENT_OF_CLIPBOARD:
         clipboardText=GlobalVariables.COPIED_TO_CLIPBOARD
     
-    return "%s. Clipboard: %s." % (programName,clipboardText)
+    #programName="%s v%s" % (PROGRAMNAME, __version__)
+    #return "%s. Clipboard: %s." % (programName,clipboardText)
+    keyboardShortcuts=""
+    if GlobalVariables.LAST_ACCOUNT_VIEWED_NAME != "-":
+        #set keyboard shortcut help to toolbar if account have been viewed
+        keyboardShortcuts="Keyboard shortcuts (see help): (C-c C-p) (C-c C-n) (...)."
+    return "Clipboard: %s. %s" % (clipboardText,keyboardShortcuts)
 
 def parseCommandLineArgs():
     #parse command line args
@@ -112,7 +119,8 @@ def myPrompt():
             complete_while_typing=False,
             #complete_style=CompleteStyle.READLINE_LIKE,
             bottom_toolbar=bottom_toolbar, 
-            style=style)
+            style=style,
+            extra_key_bindings=bindings)
     #toolbar does not work when using cygwin
 
 def main_clipwdmgr():
@@ -140,6 +148,18 @@ def main_clipwdmgr():
 
 #============================================================================================
 #main
+
+def initVariables():
+    #init global variables
+    GlobalVariables.COPIED_TO_CLIPBOARD="-"
+    GlobalVariables.REAL_CONTENT_OF_CLIPBOARD="-"
+    
+    GlobalVariables.LAST_ACCOUNT_VIEWED_NAME="-"
+    GlobalVariables.LAST_ACCOUNT_VIEWED_USERNAME="-"
+    GlobalVariables.LAST_ACCOUNT_VIEWED_URL="-"
+    GlobalVariables.LAST_ACCOUNT_VIEWED_PASSWORD="-"
+    GlobalVariables.LAST_ACCOUNT_VIEWED_EMAIL="-"
+    GlobalVariables.LAST_ACCOUNT_VIEWED_COMMENT="-"
 
 #check if program data dir is set and exists
 #exit if not set
@@ -191,6 +211,67 @@ def executeCommandLineArgs():
 
     return False
 
+def setKeyBindings():
+    # set key bindings.
+    global bindings
+    bindings = KeyBindings()
+
+    def copyTextToClipboard(textToCopy,contentDesc,printedDesc):
+        accountName=GlobalVariables.LAST_ACCOUNT_VIEWED_NAME
+        copyToClipboard(textToCopy,infoMessage=None,account=accountName,clipboardContent=contentDesc)
+        print("%s of '%s' copied to clipboard." % (printedDesc,accountName))
+        
+
+    # Add copy password key binding.
+    @bindings.add('c-c','c-p')
+    def _(event):
+        """
+        Copy password of last viewed account to clipboard
+        """
+        def copyText():
+            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_PASSWORD,'password','Password')
+        run_in_terminal(copyText)
+
+    # Add copy password key binding.
+    @bindings.add('c-c','c-n')
+    def _(event):
+        """
+        Copy username of last viewed account to clipboard
+        """
+        def copyText():
+            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_USERNAME,'user name','User name')
+        run_in_terminal(copyText)
+
+    # Add copy email key binding.
+    @bindings.add('c-c','c-e')
+    def _(event):
+        """
+        Copy email of last viewed account to clipboard
+        """
+        def copyText():
+            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_EMAIL,'email','Email')
+        run_in_terminal(copyText)
+
+    # Add copy URL key binding.
+    @bindings.add('c-c','c-u')
+    def _(event):
+        """
+        Copy URL of last viewed account to clipboard
+        """
+        def copyText():
+            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_URL,'URL','URL')
+        run_in_terminal(copyText)
+
+    # Add copy comment key binding.
+    @bindings.add('c-c','c-c')
+    def _(event):
+        """
+        Copy comment of last viewed account to clipboard
+        """
+        def copyText():
+            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_COMMENT,'comment','Comment')
+        run_in_terminal(copyText)
+
 def main():
 
     parseCommandLineArgs()
@@ -202,9 +283,8 @@ def main():
         #if no help, AttributeError is thrown
         #no problem, continue
         pass
-    #set copied to clipboard initial value
-    GlobalVariables.COPIED_TO_CLIPBOARD="-"
-    GlobalVariables.REAL_CONTENT_OF_CLIPBOARD="-"
+    
+    initVariables()
 
     checkEnv()
 
@@ -222,6 +302,7 @@ def main():
         #did not execute any command line args
         #start interface
         try:
+            setKeyBindings()
             main_clipwdmgr()
         except KeyboardInterrupt:
             #thrown when ctrl-c
