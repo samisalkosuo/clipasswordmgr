@@ -36,7 +36,7 @@
 #  prompt-toolkit
 #
 
-__version__="0.13"
+__version__="0.14"
 
 import sys
 import os
@@ -52,12 +52,11 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.shortcuts import set_title, CompleteStyle
 from prompt_toolkit.contrib.completers import WordCompleter
-from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.application import run_in_terminal
 
 from .globals import *
 from .crypto.crypto import *
 from .utils.utils import *
+from .utils.keybindings import *
 from .commands.CommandHandler import CommandHandler
 from .globals import GlobalVariables
 
@@ -70,7 +69,7 @@ cmdHistoryFile=FileHistory("%s/%s" % (os.environ.get(CLIPWDMGR_DATA_DIR),"cmd_hi
 cmdCompleter=None
 
 #key bindings
-bindings=None
+keyBindings=None
 
 #style for toolbar
 style = Style.from_dict({
@@ -93,7 +92,7 @@ def bottom_toolbar():
     keyboardShortcuts=""
     if GlobalVariables.LAST_ACCOUNT_VIEWED_NAME != "-":
         #set keyboard shortcut help to toolbar if account have been viewed
-        keyboardShortcuts="Keyboard shortcuts (see help): (C-c C-p) (C-c C-n) (...)."
+        keyboardShortcuts="Keyboard shortcuts are available for '%s' (see help)." % GlobalVariables.LAST_ACCOUNT_VIEWED_NAME
     return "Clipboard: %s. %s" % (clipboardText,keyboardShortcuts)
 
 def parseCommandLineArgs():
@@ -120,7 +119,7 @@ def myPrompt():
             #complete_style=CompleteStyle.READLINE_LIKE,
             bottom_toolbar=bottom_toolbar, 
             style=style,
-            extra_key_bindings=bindings)
+            extra_key_bindings=keyBindings)
     #toolbar does not work when using cygwin
 
 def main_clipwdmgr():
@@ -211,66 +210,7 @@ def executeCommandLineArgs():
 
     return False
 
-def setKeyBindings():
-    # set key bindings.
-    global bindings
-    bindings = KeyBindings()
-
-    def copyTextToClipboard(textToCopy,contentDesc,printedDesc):
-        accountName=GlobalVariables.LAST_ACCOUNT_VIEWED_NAME
-        copyToClipboard(textToCopy,infoMessage=None,account=accountName,clipboardContent=contentDesc)
-        print("%s of '%s' copied to clipboard." % (printedDesc,accountName))
-        
-
-    # Add copy password key binding.
-    @bindings.add('c-c','c-p')
-    def _(event):
-        """
-        Copy password of last viewed account to clipboard
-        """
-        def copyText():
-            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_PASSWORD,'password','Password')
-        run_in_terminal(copyText)
-
-    # Add copy password key binding.
-    @bindings.add('c-c','c-n')
-    def _(event):
-        """
-        Copy username of last viewed account to clipboard
-        """
-        def copyText():
-            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_USERNAME,'user name','User name')
-        run_in_terminal(copyText)
-
-    # Add copy email key binding.
-    @bindings.add('c-c','c-e')
-    def _(event):
-        """
-        Copy email of last viewed account to clipboard
-        """
-        def copyText():
-            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_EMAIL,'email','Email')
-        run_in_terminal(copyText)
-
-    # Add copy URL key binding.
-    @bindings.add('c-c','c-u')
-    def _(event):
-        """
-        Copy URL of last viewed account to clipboard
-        """
-        def copyText():
-            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_URL,'URL','URL')
-        run_in_terminal(copyText)
-
-    # Add copy comment key binding.
-    @bindings.add('c-c','c-c')
-    def _(event):
-        """
-        Copy comment of last viewed account to clipboard
-        """
-        def copyText():
-            copyTextToClipboard(GlobalVariables.LAST_ACCOUNT_VIEWED_COMMENT,'comment','Comment')
-        run_in_terminal(copyText)
+    
 
 def main():
 
@@ -302,7 +242,8 @@ def main():
         #did not execute any command line args
         #start interface
         try:
-            setKeyBindings()
+            global keyBindings
+            keyBindings=setKeyBindings()
             main_clipwdmgr()
         except KeyboardInterrupt:
             #thrown when ctrl-c
@@ -312,7 +253,6 @@ def main():
             sys.exit(1)
         except:
             error()
-
 
 if __name__ == "__main__":
     main()

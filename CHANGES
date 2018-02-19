@@ -1,3 +1,9 @@
+Version 0.14 (19.02.2018)
+
+- Moved keybindings to keybindings.py.
+- Added C-c C-o keyboard shortcut to open account URL.
+- Changed toolbar text for keyboard shortcuts.
+
 Version 0.13 (19.02.2018)
 
 - Added keyboard shortcuts to copy fields to clipboard for the last viewed account.
