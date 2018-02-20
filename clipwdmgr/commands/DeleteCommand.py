@@ -40,6 +40,7 @@ class DeleteCommand(SuperCommand):
     
     def parseCommandArgs(self,userInputList):
         cmd_parser = ThrowingArgumentParser(prog="delete",description='Delete account(s) that match given string.')
+        cmd_parser.add_argument('-id', required=False, action='store_true', help='Treat account name as account unique ID.')
         cmd_parser.add_argument('name', metavar='NAME', type=str, nargs=1,help='Start of name.')
 
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
@@ -48,8 +49,10 @@ class DeleteCommand(SuperCommand):
 
         loadAccounts(GlobalVariables.KEY)
         arg=self.cmd_args.name[0]
-
-        rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg))
+        useId=False
+        if self.cmd_args.id:
+            useId=True
+        rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg,useID=useId))
         if not rows:
             print("No accounts to delete.")
         for row in rows:

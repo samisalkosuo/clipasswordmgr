@@ -42,6 +42,7 @@ class EditCommand(SuperCommand):
         cmd_parser = ThrowingArgumentParser(prog="edit",description='Edit account(s) that match given string.')
         cmd_parser.add_argument('name', metavar='NAME', type=str, nargs=1,
                     help='Start of name.')
+        cmd_parser.add_argument('-id', required=False, action='store_true', help='Treat account name as account unique ID.')
 
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
 
@@ -49,10 +50,12 @@ class EditCommand(SuperCommand):
 
         loadAccounts(GlobalVariables.KEY)
         arg=self.cmd_args.name[0]
-
+        useID=False
+        if self.cmd_args.id:
+            useID=True
         #put results in list so that update cursor doesn't interfere with select cursor when updating account
         #there note about this here: http://apidoc.apsw.googlecode.com/hg/cursor.html
-        rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg))
+        rows=list(executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg,useID=useID))
         for row in rows:
             printAccountRow(row)
             if boolValue(prompt("Edit this account (yes/no)? ")):
@@ -82,10 +85,17 @@ class EditCommand(SuperCommand):
                 updated=formatTimestamp(currentTimestamp())
                 values.append(updated)
 
+
+                id=row[COLUMN_ID]
+                #if ID is 0, generate new ID
+                if int(id) == 0:
+                    id=generateNewID()
+                values.append(id)
+
                 created=row[COLUMN_CREATED]
                 values.append(created)
 
-                sql="update accounts set %s=?,%s=?,%s=?,%s=?,%s=?,%s=?,%s=? where %s=?" % (
+                sql="update accounts set %s=?,%s=?,%s=?,%s=?,%s=?,%s=?,%s=?,%s=? where %s=?" % (
                     COLUMN_NAME,
                     COLUMN_URL,
                     COLUMN_USERNAME,
@@ -93,6 +103,7 @@ class EditCommand(SuperCommand):
                     COLUMN_PASSWORD,
                     COLUMN_COMMENT,
                     COLUMN_UPDATED,
+                    COLUMN_ID,
                     COLUMN_CREATED
                     )
                 executeSql(sql,tuple(values),commit=True)

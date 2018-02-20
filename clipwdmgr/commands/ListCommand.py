@@ -52,6 +52,6 @@ class ListCommand(SuperCommand):
         if self.cmd_args.name:
             arg=self.cmd_args.name
 
-        rows=executeSelect([COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
+        rows=executeSelect([COLUMN_NAME,COLUMN_ID,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT],arg)
         printAccountRows(rows)
 

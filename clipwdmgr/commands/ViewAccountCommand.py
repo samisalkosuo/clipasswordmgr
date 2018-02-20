@@ -47,6 +47,7 @@ class ViewAccountCommand(SuperCommand):
         cmd_parser.add_argument('-u','--username',metavar='UNAME', required=False, type=str, help='Account includes username.')
         cmd_parser.add_argument('-c','--comment',metavar='COMMENT', required=False, type=str, help='String in comment field.')
         cmd_parser.add_argument('-e','--encrypt', required=False, action='store_true', help='View account as encrypted string.')
+        cmd_parser.add_argument('-id', required=False, action='store_true', help='Treat account name as account unique ID.')
 
         cmd_parser.add_argument('account', metavar='NAME', type=str, nargs=1,
                     help='Account name.')
@@ -61,8 +62,10 @@ class ViewAccountCommand(SuperCommand):
             return
 
         arg=self.cmd_args.account[0]
-
-        where="where name like \"%s%%\"" % arg
+        if self.cmd_args.id:
+            where="where id = %s" % arg
+        else:
+            where="where name like \"%s%%\"" % arg
 
         arg=self.cmd_args.username
         if arg:
@@ -90,8 +93,9 @@ class ViewAccountCommand(SuperCommand):
                 GlobalVariables.LAST_ACCOUNT_VIEWED_PASSWORD=row[COLUMN_PASSWORD]
                 GlobalVariables.LAST_ACCOUNT_VIEWED_EMAIL=row[COLUMN_EMAIL]
                 GlobalVariables.LAST_ACCOUNT_VIEWED_COMMENT=row[COLUMN_COMMENT]
+                GlobalVariables.LAST_ACCOUNT_VIEWED_ID=row[COLUMN_ID]
 
                 if Settings().getBoolean(SETTING_COPY_PASSWORD_ON_VIEW)==True:
                     print()
                     copyToClipboard(pwd,infoMessage="Password copied to clipboard.",account=row[COLUMN_NAME],clipboardContent="password")
-
+        

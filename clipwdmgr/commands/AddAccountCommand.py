@@ -76,6 +76,7 @@ class AddAccountCommand(SuperCommand):
         newAccount[COLUMN_COMMENT]=comment
         newAccount[COLUMN_CREATED]=timestamp
         newAccount[COLUMN_UPDATED]=timestamp
+        newAccount[COLUMN_ID]=generateNewID()
         accountString=makeAccountString(newAccount)
         debug(accountString)
 

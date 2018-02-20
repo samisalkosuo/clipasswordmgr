@@ -159,6 +159,7 @@ def initVariables():
     GlobalVariables.LAST_ACCOUNT_VIEWED_PASSWORD="-"
     GlobalVariables.LAST_ACCOUNT_VIEWED_EMAIL="-"
     GlobalVariables.LAST_ACCOUNT_VIEWED_COMMENT="-"
+    GlobalVariables.LAST_ACCOUNT_VIEWED_ID=0
 
 #check if program data dir is set and exists
 #exit if not set
@@ -231,6 +232,7 @@ def main():
     #print program & version when starting
     programName="%s v%s" % (PROGRAMNAME, __version__)
     print(programName)
+
 
     getKey()
 

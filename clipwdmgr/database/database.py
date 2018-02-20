@@ -23,11 +23,13 @@
 #database functions
 import sqlite3
 import os
+from random import randint
 
 from ..crypto.crypto import *
 from ..utils.utils import *
-#from ..globals import *
+from ..globals import *
 from ..globals import GlobalVariables
+from ..utils.settings import Settings
 
 #sqlite database
 DATABASE=None
@@ -47,11 +49,17 @@ def openDatabase():
     for column in DATABASE_ACCOUNTS_TABLE_COLUMNS:
         sql.append(" ")
         sql.append(column)
-        sql.append(" TEXT ")
+        if column in DATABASE_ACCOUNTS_TABLE_COLUMN_IS_INTEGER:
+            sql.append(" INTEGER ")
+        else:
+            sql.append(" TEXT ")
         if column in DATABASE_ACCOUNTS_TABLE_COLUMN_IS_TIMESTAMP:
             sql.append(" DEFAULT CURRENT_TIMESTAMP ")
         else:
-            sql.append(" DEFAULT '' ")
+            if column in DATABASE_ACCOUNTS_TABLE_COLUMN_IS_INTEGER:
+                sql.append(" DEFAULT 0 ")
+            else:
+                sql.append(" DEFAULT '' ")
         sql.append(",")
     sql=sql[:-1]
     sql.append(")")
@@ -67,10 +75,14 @@ def closeDatabase():
     DATABASE=None
     DATABASE_CURSOR=None
 
-def executeSelect(listOfColumnNames,whereNameStartsWith=None,whereClause=None,orderBy=COLUMN_NAME,returnSQLOnly=False):
+def executeSelect(listOfColumnNames,whereNameStartsWith=None,whereClause=None,orderBy=COLUMN_NAME,returnSQLOnly=False,useID=False):
     where=""
     if whereNameStartsWith is not None:
-        where="where name like \"%s%%\"" % whereNameStartsWith
+        if useID==False:
+            where="where name like \"%s%%\"" % whereNameStartsWith
+        else:
+            where="where id = %s" % whereNameStartsWith
+            
     if whereClause is not None:
         where=whereClause
     cols=",".join(listOfColumnNames)
@@ -162,3 +174,15 @@ def accountStringToDict(str):
         #print("%s == %s" % (name,value))
     return accountDict
 
+def generateNewID():
+    newId=0
+    settingsObj=Settings()
+    while newId==0:
+        newId=randint(1, int(settingsObj.get(SETTING_MAX_ID)))
+        rows=executeSelect([COLUMN_ID],whereClause="where %s = %d" % (COLUMN_ID,newId) )
+        #print(rows)
+        for row in rows:
+            if row[COLUMN_ID] == None:
+                newId=0
+    return newId
+            

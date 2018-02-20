@@ -50,21 +50,22 @@ def printAccountRows(rows):
     
     columnLength=Settings().getInt(SETTING_DEFAULT_COLUMN_WIDTH)
     formatString=getColumnFormatString(6,columnLength)
-    headerLine=formatString.format(COLUMN_NAME,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT)
+    headerLine=formatString.format(COLUMN_NAME,COLUMN_ID,COLUMN_URL,COLUMN_USERNAME,COLUMN_EMAIL,COLUMN_PASSWORD,COLUMN_COMMENT)
     print(headerLine)
     for row in rows:
         pwd=row[COLUMN_PASSWORD]
         if Settings().getBoolean(SETTING_MASK_PASSWORD)==True:
             pwd="********"
         pwd=shortenString(pwd)
-        accountLine=formatString.format(shortenString(row[COLUMN_NAME]),shortenString(row[COLUMN_URL]),shortenString(row[COLUMN_USERNAME]),shortenString(row[COLUMN_EMAIL]),pwd,shortenString(row[COLUMN_COMMENT]))
+        accountLine=formatString.format(shortenString(row[COLUMN_NAME]),shortenString(row[COLUMN_ID]),shortenString(row[COLUMN_URL]),shortenString(row[COLUMN_USERNAME]),shortenString(row[COLUMN_EMAIL]),pwd,shortenString(row[COLUMN_COMMENT]))
         print(accountLine)
 
-def shortenString(str):
+def shortenString(string):
+    string=str(string)
     columnWidth=Settings().getInt(SETTING_DEFAULT_COLUMN_WIDTH)
-    if len(str)>columnWidth:
-        str="%s..." % str[0:columnWidth-3]
-    return str
+    if len(string)>columnWidth:
+        string="%s..." % string[0:columnWidth-3]
+    return string
 
 def saveAccounts():
     #save accounts
@@ -86,7 +87,8 @@ def encryptAccountRow(row,key=None):
     account=[]
     for columnName in row.keys():
         value=row[columnName]
-        if value is not None:
+        if value != None:
+            value=str(value)
             value=value.strip()
         account.append("%s:%s" % (columnName,value))
     if key==None:

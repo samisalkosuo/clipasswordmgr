@@ -1,5 +1,9 @@
 Version 0.14 (19.02.2018)
 
+- Added -id option to delete-command to delete account by ID.
+- Added -id option to edit-command to edit account by ID.
+- Added -id option to view-command to view account by ID.
+- Added ID-column to account.
 - Moved keybindings to keybindings.py.
 - Added C-c C-o keyboard shortcut to open account URL.
 - Changed toolbar text for keyboard shortcuts.
