@@ -83,19 +83,5 @@ class ViewAccountCommand(SuperCommand):
                 copyToClipboard(encryptedAccount,infoMessage="Encrypted account copied to clipboard.",account=row[COLUMN_NAME],clipboardContent="encrypted text")
             else:
                 printAccountRow(row)
-                pwd=row[COLUMN_PASSWORD]
-                
-                #set last account viewed variables
-                #to to be used with keyboard shortcuts
-                GlobalVariables.LAST_ACCOUNT_VIEWED_NAME=row[COLUMN_NAME]
-                GlobalVariables.LAST_ACCOUNT_VIEWED_USERNAME=row[COLUMN_USERNAME]
-                GlobalVariables.LAST_ACCOUNT_VIEWED_URL=row[COLUMN_URL]
-                GlobalVariables.LAST_ACCOUNT_VIEWED_PASSWORD=row[COLUMN_PASSWORD]
-                GlobalVariables.LAST_ACCOUNT_VIEWED_EMAIL=row[COLUMN_EMAIL]
-                GlobalVariables.LAST_ACCOUNT_VIEWED_COMMENT=row[COLUMN_COMMENT]
-                GlobalVariables.LAST_ACCOUNT_VIEWED_ID=row[COLUMN_ID]
-
-                if Settings().getBoolean(SETTING_COPY_PASSWORD_ON_VIEW)==True:
-                    print()
-                    copyToClipboard(pwd,infoMessage="Password copied to clipboard.",account=row[COLUMN_NAME],clipboardContent="password")
+                setAccountFieldsToClipboard(row)
         

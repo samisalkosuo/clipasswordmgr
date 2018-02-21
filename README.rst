@@ -4,6 +4,9 @@ Command Line Password Manager
 Command Line Password Manager is a tool to manage accounts/passwords in the command line. 
 All accounts/passwords are stored in an encrypted file, protected by user given passphrase.
 
+Command line interface includes command history, keyboard shortcuts to copy password and other info, 
+and other nice command line UI features.
+
 Encryption/decryption is done using Python cryptography library: https://cryptography.io/en/latest/.
 
 Requirements

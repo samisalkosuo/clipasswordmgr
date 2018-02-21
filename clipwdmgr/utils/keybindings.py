@@ -38,8 +38,8 @@ def setKeyBindings():
 
     def copyTextToClipboard(textToCopy,contentDesc,printedDesc):
         accountName=GlobalVariables.LAST_ACCOUNT_VIEWED_NAME
-        copyToClipboard(textToCopy,infoMessage=None,account=accountName,clipboardContent=contentDesc)
-        print("%s of '%s' copied to clipboard." % (printedDesc,accountName))
+        if copyToClipboard(textToCopy,infoMessage=None,account=accountName,clipboardContent=contentDesc):
+            print("%s of '%s' copied to clipboard." % (printedDesc,accountName))
         
 
     # Add copy password key binding.

@@ -261,6 +261,11 @@ def pwdPassword(length=12):
 
 def copyToClipboard(stringToCopy,infoMessage=None,account=None,clipboardContent=None):
     if Settings().get(SETTING_ENABLE_CLIPBOARD_COPY)==True:
+
+        if stringToCopy=="" or stringToCopy == None:
+            print("Nothing to copy to clipboard.")
+            return False
+
         cygwinClipboard="/dev/clipboard"
         if os.path.exists(cygwinClipboard):
             clipboardDevice = open(cygwinClipboard, "w")
@@ -284,6 +289,8 @@ def copyToClipboard(stringToCopy,infoMessage=None,account=None,clipboardContent=
                         
             except:
                 print("Error copying to clipboard.")
+    
+    return True
 
 def getClipboardText():
     try:
@@ -305,3 +312,18 @@ def getColumnFormatString(numberOfColumns,columnLength,delimiter="|",align="^"):
     debug("Format string: %s" % formatString)
     return formatString
 
+def setAccountFieldsToClipboard(row):
+    pwd=row[COLUMN_PASSWORD]
+    #set last account viewed variables
+    #to to be used with keyboard shortcuts
+    GlobalVariables.LAST_ACCOUNT_VIEWED_NAME=row[COLUMN_NAME]
+    GlobalVariables.LAST_ACCOUNT_VIEWED_USERNAME=row[COLUMN_USERNAME]
+    GlobalVariables.LAST_ACCOUNT_VIEWED_URL=row[COLUMN_URL]
+    GlobalVariables.LAST_ACCOUNT_VIEWED_PASSWORD=row[COLUMN_PASSWORD]
+    GlobalVariables.LAST_ACCOUNT_VIEWED_EMAIL=row[COLUMN_EMAIL]
+    GlobalVariables.LAST_ACCOUNT_VIEWED_COMMENT=row[COLUMN_COMMENT]
+    GlobalVariables.LAST_ACCOUNT_VIEWED_ID=row[COLUMN_ID]
+
+    if Settings().getBoolean(SETTING_COPY_PASSWORD_ON_VIEW)==True:
+        print()
+        copyToClipboard(pwd,infoMessage="Password copied to clipboard.",account=row[COLUMN_NAME],clipboardContent="password")
