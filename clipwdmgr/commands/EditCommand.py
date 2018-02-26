@@ -109,3 +109,11 @@ class EditCommand(SuperCommand):
                 executeSql(sql,tuple(values),commit=True)
                 saveAccounts()
                 print("Account updated.")
+
+                #copy edited account password to clipboard
+                where="where id = %s" % id
+                arg=name
+                _newrows=rows=executeSelect(COLUMNS_TO_SELECT_ORDERED_FOR_DISPLAY,arg,whereClause=where)
+                for row in _newrows:
+                    setAccountFieldsToClipboard(row)
+
