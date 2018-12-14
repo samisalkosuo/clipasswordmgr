@@ -138,6 +138,10 @@ def modPrompt(field,defaultValue=None):
     return n
 
 
+def multilinePrompt(promptString):
+    return prompt (promptString)
+
+
 def askAccountUsername(promptStr,defaultValue=None):
 
     print("User name generator is available. Type your username or type 'u' to generate username.")

@@ -63,7 +63,7 @@ class AddAccountCommand(SuperCommand):
         username=askAccountUsername("User name")
         email=prompt("Email    : ")
         pwd=askAccountPassword("Password ","Password generator is available. Type your password or type 'p' to generate password.")
-        comment=prompt ("Comment  : ")
+        comment=multilinePrompt ("Comment  : ")
 
         timestamp=formatTimestamp(currentTimestamp())
 
