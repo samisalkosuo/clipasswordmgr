@@ -210,7 +210,7 @@ def generate_username_case_sensitive(formatStr):
     consonantsLower="mnbvcxzlkjhgfdsptrwq"
     vowelsUpper="EYUIOA"
     consonantsUpper="MNBVCXZLKJHGFDSPTRWQ"
-                     
+    anyAlphaNumeric="eyuioaEYUIOAmnbvcxzlkjhgfdsptrwqMNBVCXZLKJHGFDSPTRWQ0123456789"
     numbers="0123456789"
 
     def randomNumber():
@@ -228,6 +228,8 @@ def generate_username_case_sensitive(formatStr):
     def randomConsonantLower():
         return random.choice(consonantsLower)
 
+    def randomAlphaNumeric():
+        return random.choice(anyAlphaNumeric)
 
     regex = re.compile('[^a-zA-Z+/]')
     formatStr=regex.sub('', formatStr)
@@ -245,6 +247,8 @@ def generate_username_case_sensitive(formatStr):
             username.append(randomNumber())
         if c=="n":
             username.append(randomNumber())
+        if c=="A":
+            username.append(randomAlphaNumeric())
         if c=="+":
             username.append(" ")
         if c=="/":
@@ -261,7 +265,7 @@ def pwdPassword(length=12):
         pwd.append(random.choice(chars))
     return "".join(pwd)
 
-def pwdPasswordWordLike(format="CVCV/cvcv/nnncC"):
+def pwdPasswordWordLike(format="CVCV/cvcv/nnnn/AAAA"):
     return generate_username_case_sensitive(format)
 
 
