@@ -160,14 +160,16 @@ def askAccountUsername(promptStr,defaultValue=None):
 def askAccountPassword(promptStr,infoText,defaultValue=None):
     print(infoText)
     if defaultValue==None:
-        pwd=pwdPassword()
+        pwd=pwdPasswordWordLike()
+        #pwd=pwdPassword()
     else:
         pwd=defaultValue
     pwd=modPrompt(promptStr,pwd)
 
     while pwd=="p":
         #if pwd=="p":
-        pwd=pwdPassword()
+        pwd=pwdPasswordWordLike()
+        #pwd=pwdPassword()
         pwd=modPrompt(promptStr,pwd)
 
     if pwd=='c':

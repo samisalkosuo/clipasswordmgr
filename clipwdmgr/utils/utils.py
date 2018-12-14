@@ -229,7 +229,7 @@ def generate_username_case_sensitive(formatStr):
         return random.choice(consonantsLower)
 
 
-    regex = re.compile('[^a-zA-Z+]')
+    regex = re.compile('[^a-zA-Z+/]')
     formatStr=regex.sub('', formatStr)
     username=[]
     for c in formatStr:
@@ -247,6 +247,8 @@ def generate_username_case_sensitive(formatStr):
             username.append(randomNumber())
         if c=="+":
             username.append(" ")
+        if c=="/":
+            username.append("/")
     username="".join(username)
 
     return username
@@ -258,6 +260,10 @@ def pwdPassword(length=12):
     for i in range(length):
         pwd.append(random.choice(chars))
     return "".join(pwd)
+
+def pwdPasswordWordLike(format="CvccvcN/CvccvcN/CvccvcN"):
+    return generate_username_case_sensitive(format)
+
 
 def copyToClipboard(stringToCopy,infoMessage=None,account=None,clipboardContent=None):
     if Settings().get(SETTING_ENABLE_CLIPBOARD_COPY)==True:

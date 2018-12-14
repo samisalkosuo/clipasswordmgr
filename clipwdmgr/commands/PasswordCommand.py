@@ -29,18 +29,26 @@
 
 from ..utils.utils import *
 from .SuperCommand import *
+from ..globals import *
+from ..utils.settings import Settings
 
 
 class PasswordCommand(SuperCommand):
 
     def __init__(self,cmd_handler):
         super().__init__(cmd_handler)
-    
+        #TODO: add to settings
+        try:
+          self.defaultFormat=Settings().get(SETTING_DEFAULT_PASSWORD_FORMAT)
+        except:
+          self.defaultFormat="CvccvcN/CvccvcN/CvccvcN"
     
     def parseCommandArgs(self,userInputList):
         cmd_parser = ThrowingArgumentParser(prog="pwd",description='Generate password using characters a-z,A-Z and 0-9.')
         cmd_parser.add_argument('-l','--length',metavar='LENGTH', required=False, type=int, default=12, help='Password length. Default is 12.')
         cmd_parser.add_argument('-t','--total',metavar='NR', required=False, type=int, default=1, help='Total number of passwords to generate.')
+        cmd_parser.add_argument('-w','--wordlike', required=False, action='store_true', help='Use password format like words.')
+        cmd_parser.add_argument('-f','--format', metavar='FORMAT', type=str, nargs='?', default=self.defaultFormat, help='Format for password like words: C=consonant, V=vowel, N=number, +=space, /=slash. Default is %s.' % self.defaultFormat)
 
         (self.cmd_args,self.help_text)=parseCommandArgs(cmd_parser,userInputList)
 
@@ -48,7 +56,11 @@ class PasswordCommand(SuperCommand):
 
         pwdlen=self.cmd_args.length
         for i in range(self.cmd_args.total):
-            pwd=pwdPassword(pwdlen)
+            if self.cmd_args.wordlike:
+                pwd=pwdPasswordWordLike(self.cmd_args.format)
+            else:
+                pwd=pwdPassword(pwdlen)
             print(pwd)
+        
         copyToClipboard(pwd,infoMessage="Password copied to clipboard.",account="",clipboardContent="generated password")
 
