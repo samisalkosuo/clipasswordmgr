@@ -261,7 +261,7 @@ def pwdPassword(length=12):
         pwd.append(random.choice(chars))
     return "".join(pwd)
 
-def pwdPasswordWordLike(format="CvccvcN/CvccvcN/CvccvcN"):
+def pwdPasswordWordLike(format="CVCV/cvcv/nnncC"):
     return generate_username_case_sensitive(format)
 
 
