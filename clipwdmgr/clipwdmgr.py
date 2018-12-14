@@ -36,7 +36,7 @@
 #  prompt-toolkit
 #
 
-__version__="0.15"
+__version__="0.16"
 
 import sys
 import os
@@ -124,7 +124,7 @@ def myPrompt():
 
 def main_clipwdmgr():
     programName="%s v%s" % (PROGRAMNAME, __version__)
-    set_title(programName)
+    #set_title(programName)
 
     #set version as global variable
     GlobalVariables.VERSION=__version__
