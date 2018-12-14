@@ -1,3 +1,7 @@
+Version 0.15 (26.02.2018)
+
+- After editing account, password is copied to clipboard.
+
 Version 0.14 (22.02.2018)
 
 - Added -id option to delete-command to delete account by ID.
