@@ -41,7 +41,7 @@ class PasswordCommand(SuperCommand):
         try:
           self.defaultFormat=Settings().get(SETTING_DEFAULT_PASSWORD_FORMAT)
         except:
-          self.defaultFormat="CVCV/cvcv/nnnn/AAAA"
+          self.defaultFormat="CVCV/nnnn/AAAA"
     
     def parseCommandArgs(self,userInputList):
         cmd_parser = ThrowingArgumentParser(prog="pwd",description='Generate password using characters a-z,A-Z and 0-9.')
