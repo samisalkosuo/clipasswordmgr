@@ -51,7 +51,7 @@ from prompt_toolkit import prompt
 from prompt_toolkit.styles import Style
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.shortcuts import set_title, CompleteStyle
-from prompt_toolkit.contrib.completers import WordCompleter
+from prompt_toolkit.completion import WordCompleter
 
 from .globals import *
 from .crypto.crypto import *
@@ -119,7 +119,7 @@ def myPrompt():
             #complete_style=CompleteStyle.READLINE_LIKE,
             bottom_toolbar=bottom_toolbar, 
             style=style,
-            extra_key_bindings=keyBindings)
+            key_bindings=keyBindings)
     #toolbar does not work when using cygwin
 
 def main_clipwdmgr():

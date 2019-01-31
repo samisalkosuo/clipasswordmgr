@@ -35,7 +35,7 @@ Installation steps:
 
 - **pip install cryptography**
 - **pip install pyperclip**
-- **pip install https://github.com/jonathanslenders/python-prompt-toolkit/archive/2.0.zip**
+- **pip install prompt-toolkit**
 - **pip install https://github.com/samisalkosuo/clipasswordmgr/archive/master.zip**
 
 pip-installation creates executable: **clipwdmgr**.
