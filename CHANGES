@@ -1,3 +1,9 @@
+Version 0.17 (22.01.2020)
+
+- Fixed pwd-command.
+- Minor internal changes.
+
+
 Version 0.16 (14.12.2018)
 
 - Added option generating password using format like "CVC".

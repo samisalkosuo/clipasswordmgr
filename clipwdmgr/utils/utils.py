@@ -79,7 +79,7 @@ def printDictionary(dictionary,indent=""):
         if value==0:
             value="False"
         valueType=type(value).__name__
-        if valueType is not "str":
+        if valueType != "str":
             value=str(value)
         print(indent+formatString.format(key,value))
 

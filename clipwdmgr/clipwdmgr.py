@@ -36,7 +36,7 @@
 #  prompt-toolkit
 #
 
-__version__="0.16"
+__version__="0.17"
 
 import sys
 import os

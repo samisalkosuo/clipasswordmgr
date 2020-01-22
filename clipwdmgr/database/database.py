@@ -122,7 +122,7 @@ def insertAccountToDB(accountString):
     qmarks=[]
     for key in accountDict.keys():
         value=accountDict[key]
-        if value is not "":
+        if value != "":
             columnNames.append(key)
             values.append(value)
             qmarks.append("?")
@@ -150,7 +150,7 @@ def loadAccounts(encryptionKey=None,cmd=None):
         encryptionKey=GlobalVariables.KEY
 
     if os.path.isfile(GlobalVariables.CLI_PASSWORD_FILE) == False:
-        if cmd is not "add":
+        if cmd != "add":
             print("No accounts. Add accounts using add-command.")
         return False
 
